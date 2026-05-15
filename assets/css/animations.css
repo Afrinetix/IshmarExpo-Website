@@ -1,0 +1,416 @@
+/* ============================================================
+   ISHMAR EXPO — Animations & Transitions
+   ============================================================ */
+
+/* ── AOS Overrides ── */
+[data-aos] { pointer-events: none; }
+[data-aos].aos-animate { pointer-events: auto; }
+
+[data-aos="fade-up"] { transform: translateY(40px); }
+[data-aos="fade-down"] { transform: translateY(-40px); }
+[data-aos="fade-left"] { transform: translateX(40px); }
+[data-aos="fade-right"] { transform: translateX(-40px); }
+
+/* ── Keyframe Library ── */
+
+/* Float animation for decorative elements */
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33%       { transform: translateY(-12px) rotate(1deg); }
+  66%       { transform: translateY(-6px) rotate(-1deg); }
+}
+
+/* Glow pulse */
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(201,162,39,0.3); }
+  50%       { box-shadow: 0 0 50px rgba(201,162,39,0.7), 0 0 100px rgba(201,162,39,0.2); }
+}
+
+/* Shimmer effect */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Rotate */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Scale breathe */
+@keyframes breathe {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.04); }
+}
+
+/* Slide in from left */
+@keyframes slideInLeft {
+  from { transform: translateX(-60px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+/* Slide in from right */
+@keyframes slideInRight {
+  from { transform: translateX(60px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+/* Slide in from bottom */
+@keyframes slideInUp {
+  from { transform: translateY(60px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+/* Reveal clip */
+@keyframes revealClip {
+  from { clip-path: inset(0 100% 0 0); }
+  to   { clip-path: inset(0 0% 0 0); }
+}
+
+/* Number count flash */
+@keyframes countFlash {
+  0%, 100% { color: var(--white); }
+  50%       { color: var(--gold); }
+}
+
+/* Marquee for partner logos */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* Border walk */
+@keyframes borderWalk {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ── Utility Animation Classes ── */
+
+.animate-float   { animation: float 6s ease-in-out infinite; }
+.animate-glow    { animation: glowPulse 3s ease-in-out infinite; }
+.animate-breathe { animation: breathe 4s ease-in-out infinite; }
+.animate-spin    { animation: spin 20s linear infinite; }
+
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+.delay-400 { animation-delay: 0.4s; }
+.delay-500 { animation-delay: 0.5s; }
+.delay-600 { animation-delay: 0.6s; }
+
+/* ── Reveal Animations (GSAP targets) ── */
+
+.reveal-up {
+  opacity: 0;
+  transform: translateY(50px);
+}
+
+.reveal-left {
+  opacity: 0;
+  transform: translateX(-50px);
+}
+
+.reveal-right {
+  opacity: 0;
+  transform: translateX(50px);
+}
+
+.reveal-scale {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+.reveal-fade {
+  opacity: 0;
+}
+
+/* ── Text Reveal ── */
+.text-reveal-wrap { overflow: hidden; }
+
+.text-reveal-inner {
+  display: block;
+  transform: translateY(100%);
+}
+
+/* ── Gold Shimmer Text ── */
+.gold-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--gold-dark) 0%,
+    var(--gold) 20%,
+    var(--gold-light) 40%,
+    var(--gold) 60%,
+    var(--gold-dark) 80%,
+    var(--gold) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 4s linear infinite;
+}
+
+/* ── Glowing Border ── */
+.glow-border {
+  position: relative;
+}
+
+.glow-border::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: linear-gradient(
+    var(--angle, 0deg),
+    var(--gold-dark),
+    var(--gold),
+    var(--gold-light),
+    var(--gold),
+    var(--gold-dark)
+  );
+  background-size: 200% 200%;
+  animation: borderWalk 4s linear infinite;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+
+.glow-border:hover::before { opacity: 1; }
+
+/* ── Magnetic Button ── */
+.magnetic {
+  display: inline-block;
+  transition: transform 0.3s var(--ease-smooth);
+}
+
+/* ── Cinematic Overlay ── */
+.cinematic-overlay {
+  position: relative;
+  overflow: hidden;
+}
+
+.cinematic-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(7,11,22,0.5) 0%,
+    transparent 30%,
+    transparent 70%,
+    rgba(7,11,22,0.8) 100%
+  );
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* ── Particle Container ── */
+#hero-particles {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(201,162,39,0.6);
+  animation: particleFloat linear infinite;
+  pointer-events: none;
+}
+
+@keyframes particleFloat {
+  0% {
+    transform: translateY(100vh) scale(0);
+    opacity: 0;
+  }
+  10% { opacity: 1; transform: translateY(80vh) scale(1); }
+  90% { opacity: 0.5; }
+  100% {
+    transform: translateY(-10vh) scale(0.5);
+    opacity: 0;
+  }
+}
+
+/* ── Section Background Patterns ── */
+.bg-pattern-dots {
+  background-image: radial-gradient(rgba(201,162,39,0.12) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.bg-pattern-grid {
+  background-image:
+    linear-gradient(rgba(201,162,39,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(201,162,39,0.06) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* ── Glassmorphism Card ── */
+.glass-card {
+  background: rgba(255,255,255,0.04);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius-lg);
+}
+
+/* ── Spotlight Hover ── */
+.spotlight {
+  position: relative;
+  overflow: hidden;
+}
+
+.spotlight::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    600px circle at var(--x, 50%) var(--y, 50%),
+    rgba(201,162,39,0.08) 0%,
+    transparent 60%
+  );
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+.spotlight:hover::after { opacity: 1; }
+
+/* ── Loading Skeleton ── */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.05) 25%,
+    rgba(255,255,255,0.1) 50%,
+    rgba(255,255,255,0.05) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
+}
+
+/* ── Page Transition Overlay ── */
+#page-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 9800;
+  background: var(--dark);
+  transform: scaleY(0);
+  transform-origin: bottom;
+  pointer-events: none;
+}
+
+/* ── Section Number (decorative) ── */
+.section-number {
+  font-family: var(--font-display);
+  font-size: 180px;
+  font-weight: 900;
+  color: rgba(201,162,39,0.04);
+  position: absolute;
+  top: -20px;
+  right: 40px;
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ── Line decorations ── */
+.deco-line-h {
+  width: 80px;
+  height: 1px;
+  background: var(--gradient-gold);
+}
+
+.deco-line-v {
+  width: 1px;
+  height: 80px;
+  background: linear-gradient(to bottom, var(--gold), transparent);
+}
+
+/* ── Gold dot separator ── */
+.dot-sep {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--gray);
+  font-family: var(--font-heading);
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.dot-sep::before,
+.dot-sep::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ── Animated underline ── */
+.animated-underline {
+  position: relative;
+  display: inline-block;
+}
+
+.animated-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--gradient-gold);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.4s var(--ease-smooth);
+}
+
+.animated-underline:hover::after,
+.animated-underline.active::after {
+  transform: scaleX(1);
+}
+
+/* ── Hero text word animation targets ── */
+.hero-word {
+  display: inline-block;
+  overflow: hidden;
+}
+
+.hero-word-inner {
+  display: inline-block;
+  transform: translateY(110%);
+}
+
+/* ── Stagger children ── */
+.stagger-children > * {
+  opacity: 0;
+  transform: translateY(30px);
+}
+
+/* ── Blur in ── */
+@keyframes blurIn {
+  from { filter: blur(20px); opacity: 0; transform: scale(1.05); }
+  to   { filter: blur(0); opacity: 1; transform: scale(1); }
+}
+
+.animate-blur-in {
+  animation: blurIn 1s var(--ease-smooth) forwards;
+}
+
+/* ── Typewriter cursor ── */
+.typewriter::after {
+  content: '|';
+  color: var(--gold);
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}

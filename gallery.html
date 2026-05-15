@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Ishmar Halal Traders Expo Gallery — Browse photos and videos from our Halal exhibitions, empowerment forums, certification summits, and community events across Kenya." />
+  <title>Gallery | Ishmar Halal Traders Expo Ltd</title>
+  <link rel="canonical" href="https://ishmarexpo.com/gallery.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,600&family=Montserrat:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+  <link rel="stylesheet" href="assets/css/main.css" />
+  <link rel="stylesheet" href="assets/css/animations.css" />
+  <style>
+    /* Masonry via CSS columns */
+    .masonry-gallery { columns: 4; column-gap: 16px; }
+    .masonry-item {
+      break-inside: avoid;
+      margin-bottom: 16px;
+      border-radius: var(--radius);
+      overflow: hidden;
+      position: relative;
+      cursor: pointer;
+      display: block;
+      transition: transform 0.4s var(--ease-smooth);
+    }
+    .masonry-item:hover { transform: scale(1.02); }
+    .masonry-item img { width:100%; display:block; }
+    .masonry-overlay {
+      position:absolute; inset:0;
+      background:linear-gradient(to top, rgba(7,11,22,0.88) 0%, transparent 55%);
+      opacity:0; transition:opacity 0.4s;
+      display:flex; flex-direction:column;
+      justify-content:flex-end; padding:20px;
+    }
+    .masonry-item:hover .masonry-overlay { opacity:1; }
+    .masonry-overlay-title { font-family:var(--font-display); font-size:15px; font-weight:600; color:var(--white); }
+    .masonry-overlay-cat { font-family:var(--font-heading); font-size:10px; letter-spacing:2px; color:var(--gold); text-transform:uppercase; margin-bottom:6px; }
+    .masonry-zoom {
+      position:absolute; top:16px; right:16px;
+      width:36px; height:36px; border-radius:50%;
+      background:rgba(201,162,39,0.9); color:var(--dark);
+      display:flex; align-items:center; justify-content:center;
+      font-size:14px;
+      opacity:0; transform:scale(0.5);
+      transition:opacity 0.3s, transform 0.3s var(--ease-bounce);
+    }
+    .masonry-item:hover .masonry-zoom { opacity:1; transform:scale(1); }
+
+    @media(max-width:1100px) { .masonry-gallery { columns:3; } }
+    @media(max-width:768px)  { .masonry-gallery { columns:2; } }
+    @media(max-width:480px)  { .masonry-gallery { columns:1; } }
+
+    /* Gallery Videos Grid */
+    .gallery-videos-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+    @media(max-width:900px) { .gallery-videos-grid { grid-template-columns:1fr 1fr; } }
+    @media(max-width:600px) { .gallery-videos-grid { grid-template-columns:1fr; } }
+
+    /* Lightbox nav arrows */
+    .img-lightbox-nav {
+      position:fixed; top:50%; transform:translateY(-50%);
+      width:48px; height:48px; border-radius:50%;
+      background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2);
+      display:flex; align-items:center; justify-content:center;
+      color:white; font-size:18px; cursor:pointer; z-index:9200;
+      transition:background 0.3s;
+    }
+    .img-lightbox-nav:hover { background:var(--gold); color:var(--dark); }
+    .img-lightbox-prev { left:20px; }
+    .img-lightbox-next { right:20px; }
+  </style>
+</head>
+<body class="loading">
+
+  <div id="scroll-progress"></div>
+  <div id="preloader">
+    <div class="preloader-logo">ISHMAR<span>EXPO</span></div>
+    <div class="preloader-tagline">Where Visions Meet the World</div>
+    <div class="preloader-bar-wrap"><div class="preloader-bar"></div></div>
+  </div>
+  <div class="cursor-dot" aria-hidden="true"></div>
+  <div class="cursor-ring" aria-hidden="true"></div>
+
+  <nav id="navbar">
+    <div class="nav-container">
+      <a href="index.html" class="nav-logo">
+        <div class="nav-logo-main">ISHMAR<span>EXPO</span></div>
+        <div class="nav-logo-sub">LIMITED</div>
+      </a>
+      <ul class="nav-links">
+        <li><a href="index.html"    class="nav-link">Home</a></li>
+        <li><a href="about.html"    class="nav-link">About</a></li>
+        <li><a href="events.html"   class="nav-link">Events</a></li>
+        <li><a href="services.html" class="nav-link">Services</a></li>
+        <li><a href="gallery.html"  class="nav-link active">Gallery</a></li>
+        <li><a href="media.html"    class="nav-link">Media</a></li>
+        <li><a href="contact.html"  class="nav-link">Contact</a></li>
+      </ul>
+      <a href="contact.html" class="nav-cta">Get In Touch</a>
+      <button class="nav-hamburger" aria-label="Toggle mobile menu"><span></span><span></span><span></span></button>
+    </div>
+  </nav>
+  <div class="nav-mobile">
+    <a href="index.html"    class="nav-mobile-link">Home</a>
+    <a href="about.html"    class="nav-mobile-link">About</a>
+    <a href="events.html"   class="nav-mobile-link">Events</a>
+    <a href="services.html" class="nav-mobile-link">Services</a>
+    <a href="gallery.html"  class="nav-mobile-link active">Gallery</a>
+    <a href="media.html"    class="nav-mobile-link">Media</a>
+    <a href="contact.html"  class="nav-mobile-link">Contact</a>
+  </div>
+
+  <!-- PAGE HERO -->
+  <section class="page-hero">
+    <div class="page-hero-bg"></div>
+    <div class="page-hero-pattern"></div>
+    <div class="page-hero-glow"></div>
+    <div class="page-hero-content">
+      <div class="page-breadcrumb">
+        <a href="index.html">Home</a>
+        <i class="fas fa-chevron-right" style="font-size:9px;"></i>
+        <span>Gallery</span>
+      </div>
+      <h1 class="page-hero-title">Capturing Every <em>Halal</em><br>Moment &amp; Milestone</h1>
+      <p class="page-hero-sub">A visual journey through Ishmar Halal Traders Expo's exhibitions, empowerment forums, certification summits, and community events across Kenya.</p>
+    </div>
+  </section>
+
+  <!-- ═══ PHOTO GALLERY ═══ -->
+  <section class="section" style="background:var(--dark);">
+    <div class="container">
+      <div class="section-header center">
+        <div class="section-label">Photo Gallery</div>
+        <h2 class="section-title">Through the <em>Lens</em></h2>
+        <div class="gold-line center"></div>
+      </div>
+
+      <!-- Category Filters -->
+      <div class="filter-tabs" style="justify-content:center; margin-bottom:50px;">
+        <button class="filter-tab active" data-filter="all">All Photos</button>
+        <button class="filter-tab" data-filter="halal">Halal Expo</button>
+        <button class="filter-tab" data-filter="empowerment">Empowerment</button>
+        <button class="filter-tab" data-filter="networking">Networking</button>
+        <button class="filter-tab" data-filter="speakers">Speakers</button>
+        <button class="filter-tab" data-filter="certification">Certification</button>
+      </div>
+
+      <!-- Masonry Grid -->
+      <div class="masonry-gallery" id="masonry-gallery">
+
+        <div class="masonry-item gallery-item" data-category="halal" data-src="assets/images/WhatsApp Image 2025-06-02 at 23.18.56_be997c3b.jpg" data-alt="Nairobi Ishmar Traders Expo 2024" style="display:block;">
+          <img src="assets/images/WhatsApp Image 2025-06-02 at 23.18.56_be997c3b.jpg" alt="Nairobi Ishmar Traders Expo 2024" loading="lazy" />
+          <div class="masonry-overlay">
+            <div class="masonry-overlay-cat">Halal Expo</div>
+            <div class="masonry-overlay-title">Nairobi Ishmar Traders Expo — June 2024</div>
+          </div>
+          <div class="masonry-zoom"><i class="fas fa-expand-alt"></i></div>
+        </div>
+
+        <div class="masonry-item gallery-item" data-category="speakers" data-src="assets/images/WhatsApp Image 2025-06-03 at 00.16.53_e0adb873.jpg" data-alt="Panel discussion at Ishmar Expo">
+          <img src="assets/images/WhatsApp Image 2025-06-03 at 00.16.53_e0adb873.jpg" alt="Panel discussion" loading="lazy" />
+          <div class="masonry-overlay">
+            <div class="masonry-overlay-cat">Speakers</div>
+            <div class="masonry-overlay-title">Halal Business Panel Discussion</div>
+          </div>
+          <div class="masonry-zoom"><i class="fas fa-expand-alt"></i></div>
+        </div>
+
+        <div class="masonry-item gallery-item" data-category="networking" data-src="assets/images/WhatsApp Image 2025-06-03 at 00.07.10_11305ca0.jpg" data-alt="Business networking at Ishmar Expo">
+          <img src="assets/images/WhatsApp Image 2025-06-03 at 00.07.10_11305ca0.jpg" alt="Business networking" loading="lazy" />
+          <div class="masonry-overlay">
+            <div class="masonry-overlay-cat">Networking</div>
+            <div class="masonry-overlay-title">Business Networking Session</div>
+          </div>
+          <div class="masonry-zoom"><i class="fas fa-expand-alt"></i></div>
+        </div>
+
+        <div class="masonry-item gallery-item" data-category="halal" data-src="assets/images/WhatsApp Image 2025-06-02 at 23.25.39_10aa5f71.jpg" data-alt="Exhibitors at Ishmar Expo">
+          <img src="assets/images/WhatsApp Image 2025-06-02 at 23.25.39_10aa5f71.jpg" alt="Exhibitors at Ishmar Expo" loading="lazy" />
+          <div class="masonry-overlay">
+            <div class="masonry-overlay-cat">Halal Expo</div>
+            <div class="masonry-overlay-title">Halal Exhibitor Booths &amp; Displays</div>
+          </div>
+          <div class="masonry-zoom"><i class="fas fa-expand-alt"></i></div>
+        </div>
+
+        <div class="masonry-item gallery-item" data-category="empowerment" data-src="assets/images/WhatsApp Image 2025-06-03 at 00.11.41_79faf687.jpg" data-alt="Halal Business Empowerment Forum">
+          <img src="assets/images/WhatsApp Image 2025-06-03 at 00.11.41_79faf687.jpg" alt="Halal Business Empowerment Forum" loading="lazy" />
+          <div class="masonry-overlay">
+            <div class="masonry-overlay-cat">Empowerment</div>
+            <div class="masonry-overlay-title">Halal Business Empowerment Forum</div>
+          </div>
+          <div class="masonry-zoom"><i class="fas fa-expand-alt"></i></div>
+        </div>
+
+        <div class="masonry-item gallery-item" data-category="certification" data-src="assets/images/WhatsApp Image 2025-06-03 at 00.16.53_52deefcf.jpg" data-alt="Halal Certification Summit">
+          <img src="assets/images/WhatsApp Image 2025-06-03 at 00.16.53_52deefcf.jpg" alt="Halal Certification Summit" loading="lazy" />
+          <div class="masonry-overlay">
+            <div class="masonry-overlay-cat">Certification</div>
+            <div class="masonry-overlay-title">Halal Certification Summit 2025</div>
+          </div>
+          <div class="masonry-zoom"><i class="fas fa-expand-alt"></i></div>
+        </div>
+
+        <div class="masonry-item gallery-item" data-category="empowerment" data-src="assets/images/WhatsApp Image 2025-06-03 at 00.11.41_b9116872.jpg" data-alt="Women empowerment session">
+          <img src="assets/images/WhatsApp Image 2025-06-03 at 00.11.41_b9116872.jpg" alt="Women empowerment session" loading="lazy" />
+          <div class="masonry-overlay">
+            <div class="masonry-overlay-cat">Empowerment</div>
+            <div class="masonry-overlay-title">Women in Halal Business Program</div>
+          </div>
+          <div class="masonry-zoom"><i class="fas fa-expand-alt"></i></div>
+        </div>
+
+        <div class="masonry-item gallery-item" data-category="halal" data-src="assets/images/WhatsApp Image 2025-06-02 at 23.18.57_cd037885.jpg" data-alt="Nairobi Halal Traders Expo 2026">
+          <img src="assets/images/WhatsApp Image 2025-06-02 at 23.18.57_cd037885.jpg" alt="Nairobi Halal Traders Expo 2026" loading="lazy" />
+          <div class="masonry-overlay">
+            <div class="masonry-overlay-cat">Halal Expo</div>
+            <div class="masonry-overlay-title">Nairobi Halal Traders Expo 2026</div>
+          </div>
+          <div class="masonry-zoom"><i class="fas fa-expand-alt"></i></div>
+        </div>
+
+        <div class="masonry-item gallery-item" data-category="speakers" data-src="assets/images/WhatsApp Image 2025-06-03 at 00.11.42_6ece1c3b.jpg" data-alt="Keynote speaker at Ishmar Expo">
+          <img src="assets/images/WhatsApp Image 2025-06-03 at 00.11.42_6ece1c3b.jpg" alt="Keynote speaker" loading="lazy" />
+          <div class="masonry-overlay">
+            <div class="masonry-overlay-cat">Speakers</div>
+            <div class="masonry-overlay-title">Aisha Omar Said — Opening Keynote</div>
+          </div>
+          <div class="masonry-zoom"><i class="fas fa-expand-alt"></i></div>
+        </div>
+
+        <div class="masonry-item gallery-item" data-category="halal" data-src="assets/images/WhatsApp Image 2025-06-02 at 23.25.39_4da3039f.jpg" data-alt="Halal trade exhibition">
+          <img src="assets/images/WhatsApp Image 2025-06-02 at 23.25.39_4da3039f.jpg" alt="Halal trade exhibition" loading="lazy" />
+          <div class="masonry-overlay">
+            <div class="masonry-overlay-cat">Halal Expo</div>
+            <div class="masonry-overlay-title">Halal Trade Exhibition Floor</div>
+          </div>
+          <div class="masonry-zoom"><i class="fas fa-expand-alt"></i></div>
+        </div>
+
+        <div class="masonry-item gallery-item" data-category="networking" data-src="assets/images/WhatsApp Image 2025-06-03 at 00.01.53_1b811f27.jpg" data-alt="Community networking">
+          <img src="assets/images/WhatsApp Image 2025-06-03 at 00.01.53_1b811f27.jpg" alt="Community networking" loading="lazy" />
+          <div class="masonry-overlay">
+            <div class="masonry-overlay-cat">Networking</div>
+            <div class="masonry-overlay-title">Community Connections &amp; Partnerships</div>
+          </div>
+          <div class="masonry-zoom"><i class="fas fa-expand-alt"></i></div>
+        </div>
+
+        <div class="masonry-item gallery-item" data-category="empowerment" data-src="assets/images/IMG-20250814-WA0409.jpg" data-alt="Community empowerment programs">
+          <img src="assets/images/IMG-20250814-WA0409.jpg" alt="Community empowerment programs" loading="lazy" />
+          <div class="masonry-overlay">
+            <div class="masonry-overlay-cat">Empowerment</div>
+            <div class="masonry-overlay-title">Community Empowerment Programs</div>
+          </div>
+          <div class="masonry-zoom"><i class="fas fa-expand-alt"></i></div>
+        </div>
+
+        <div class="masonry-item gallery-item" data-category="halal" data-src="assets/images/IMG-20250814-WA0413.jpg" data-alt="Corporate Halal Summit">
+          <img src="assets/images/IMG-20250814-WA0413.jpg" alt="Corporate Halal Summit" loading="lazy" />
+          <div class="masonry-overlay">
+            <div class="masonry-overlay-cat">Halal Expo</div>
+            <div class="masonry-overlay-title">Corporate Halal Business Summit</div>
+          </div>
+          <div class="masonry-zoom"><i class="fas fa-expand-alt"></i></div>
+        </div>
+
+        <div class="masonry-item gallery-item" data-category="certification" data-src="assets/images/IMG-20250814-WA0410.jpg" data-alt="Halal certification workshop">
+          <img src="assets/images/IMG-20250814-WA0410.jpg" alt="Halal certification workshop" loading="lazy" />
+          <div class="masonry-overlay">
+            <div class="masonry-overlay-cat">Certification</div>
+            <div class="masonry-overlay-title">Halal Certification Workshop</div>
+          </div>
+          <div class="masonry-zoom"><i class="fas fa-expand-alt"></i></div>
+        </div>
+
+        <div class="masonry-item gallery-item" data-category="networking" data-src="assets/images/WhatsApp Image 2025-06-02 at 23.20.08_d2ba3fac.jpg" data-alt="Exhibitor networking">
+          <img src="assets/images/WhatsApp Image 2025-06-02 at 23.20.08_d2ba3fac.jpg" alt="Exhibitor networking" loading="lazy" />
+          <div class="masonry-overlay">
+            <div class="masonry-overlay-cat">Networking</div>
+            <div class="masonry-overlay-title">Exhibitor &amp; Visitor Connections</div>
+          </div>
+          <div class="masonry-zoom"><i class="fas fa-expand-alt"></i></div>
+        </div>
+
+        <div class="masonry-item gallery-item" data-category="halal" data-src="assets/images/IMG-20250814-WA0405.jpg" data-alt="Ishmar Halal Expo event">
+          <img src="assets/images/IMG-20250814-WA0405.jpg" alt="Ishmar Halal Expo event" loading="lazy" />
+          <div class="masonry-overlay">
+            <div class="masonry-overlay-cat">Halal Expo</div>
+            <div class="masonry-overlay-title">Ishmar Halal Expo — Community Day</div>
+          </div>
+          <div class="masonry-zoom"><i class="fas fa-expand-alt"></i></div>
+        </div>
+
+      </div>
+
+      <div style="text-align:center;margin-top:48px;">
+        <button class="btn btn-gold-outline" id="load-more-btn"><i class="fas fa-plus"></i> Load More Photos</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ VIDEO GALLERY ═══ -->
+  <section class="section" style="background:var(--primary);">
+    <div class="container">
+      <div class="section-header center">
+        <div class="section-label">Video Gallery</div>
+        <h2 class="section-title">Event <em>Highlights</em> &amp; Reels</h2>
+        <div class="gold-line center"></div>
+        <p class="section-subtitle">Relive the energy and excitement of Ishmar Expo's most memorable events.</p>
+      </div>
+
+      <div class="gallery-videos-grid">
+
+        <!-- Featured (YouTube official) -->
+        <div class="video-card" style="grid-column:span 2; aspect-ratio:16/7; cursor:pointer;" data-video="WT8jMjQo_to" data-platform="youtube">
+          <img src="assets/images/WhatsApp Image 2025-06-02 at 23.18.56_be997c3b.jpg" alt="Ishmar Halal Traders Expo Official Highlights" class="video-thumb" loading="lazy" />
+          <div class="video-overlay"></div>
+          <div class="video-play" aria-label="Play official highlights video"><i class="fas fa-play"></i></div>
+          <div class="video-info">
+            <div class="video-label">Official Highlights</div>
+            <div class="video-title">Ishmar Halal Traders Expo — Nairobi 2024 Highlights Reel</div>
+          </div>
+        </div>
+
+        <div class="video-card" style="cursor:pointer;" data-video="WT8jMjQo_to" data-platform="youtube">
+          <img src="assets/images/WhatsApp Image 2025-06-03 at 00.16.53_52deefcf.jpg" alt="Halal Certification Summit" class="video-thumb" loading="lazy" />
+          <div class="video-overlay"></div>
+          <div class="video-play" aria-label="Play keynote video"><i class="fas fa-play"></i></div>
+          <div class="video-info">
+            <div class="video-label">Certification Summit</div>
+            <div class="video-title">Halal Certification — Expert Sessions 2025</div>
+          </div>
+        </div>
+
+        <div class="video-card" style="cursor:pointer;" data-video="WT8jMjQo_to" data-platform="youtube">
+          <img src="assets/images/WhatsApp Image 2025-06-03 at 00.07.10_11305ca0.jpg" alt="Networking Moments" class="video-thumb" loading="lazy" />
+          <div class="video-overlay"></div>
+          <div class="video-play" aria-label="Play networking video"><i class="fas fa-play"></i></div>
+          <div class="video-info">
+            <div class="video-label">Networking</div>
+            <div class="video-title">Halal Business Connections — Moments 2024</div>
+          </div>
+        </div>
+
+        <div class="video-card" style="cursor:pointer;" data-video="WT8jMjQo_to" data-platform="youtube">
+          <img src="assets/images/WhatsApp Image 2025-06-03 at 00.11.41_79faf687.jpg" alt="Empowerment Forum" class="video-thumb" loading="lazy" />
+          <div class="video-overlay"></div>
+          <div class="video-play" aria-label="Play empowerment video"><i class="fas fa-play"></i></div>
+          <div class="video-info">
+            <div class="video-label">Empowerment Forum</div>
+            <div class="video-title">Women &amp; Youth Halal Business Empowerment Forum</div>
+          </div>
+        </div>
+
+        <div class="video-card" style="cursor:pointer;" data-video="WT8jMjQo_to" data-platform="youtube">
+          <img src="assets/images/WhatsApp Image 2025-06-02 at 23.25.39_10aa5f71.jpg" alt="Opening Ceremony" class="video-thumb" loading="lazy" />
+          <div class="video-overlay"></div>
+          <div class="video-play" aria-label="Play opening ceremony"><i class="fas fa-play"></i></div>
+          <div class="video-info">
+            <div class="video-label">Opening Ceremony</div>
+            <div class="video-title">Grand Launch — Nairobi Ishmar Traders Expo 2024</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ SOCIAL MEDIA HIGHLIGHTS ═══ -->
+  <section class="section" style="background:var(--dark);">
+    <div class="container">
+      <div class="section-header center">
+        <div class="section-label">Social Media</div>
+        <h2 class="section-title">Follow Our <em>Journey</em></h2>
+        <div class="gold-line center"></div>
+        <p class="section-subtitle">Stay connected with Ishmar Halal Traders Expo across all platforms for live updates, behind-the-scenes content, and Halal event announcements.</p>
+      </div>
+      <div class="grid grid-4" style="gap:20px; margin-top:10px;">
+        <a href="https://www.instagram.com/ishmarexpo" target="_blank" rel="noopener" class="card" style="padding:32px 24px; text-align:center; text-decoration:none;">
+          <div style="font-size:36px; color:#E1306C; margin-bottom:16px;"><i class="fab fa-instagram"></i></div>
+          <div style="font-family:var(--font-heading);font-size:13px;font-weight:700;color:var(--white);margin-bottom:6px;">@ishmarexpo</div>
+          <div style="font-size:12px;color:var(--gray);">Follow on Instagram</div>
+        </a>
+        <a href="https://www.facebook.com/ishmarexpo" target="_blank" rel="noopener" class="card" style="padding:32px 24px; text-align:center; text-decoration:none;">
+          <div style="font-size:36px; color:#1877F2; margin-bottom:16px;"><i class="fab fa-facebook-f"></i></div>
+          <div style="font-family:var(--font-heading);font-size:13px;font-weight:700;color:var(--white);margin-bottom:6px;">Ishmar Expo Ltd</div>
+          <div style="font-size:12px;color:var(--gray);">Like on Facebook</div>
+        </a>
+        <a href="https://www.youtube.com/@ishmarexpo" target="_blank" rel="noopener" class="card" style="padding:32px 24px; text-align:center; text-decoration:none;">
+          <div style="font-size:36px; color:#FF0000; margin-bottom:16px;"><i class="fab fa-youtube"></i></div>
+          <div style="font-family:var(--font-heading);font-size:13px;font-weight:700;color:var(--white);margin-bottom:6px;">Ishmar Expo</div>
+          <div style="font-size:12px;color:var(--gray);">Subscribe on YouTube</div>
+        </a>
+        <a href="https://www.tiktok.com/@ishmarexpo" target="_blank" rel="noopener" class="card" style="padding:32px 24px; text-align:center; text-decoration:none;">
+          <div style="font-size:36px; color:var(--white); margin-bottom:16px;"><i class="fab fa-tiktok"></i></div>
+          <div style="font-family:var(--font-heading);font-size:13px;font-weight:700;color:var(--white);margin-bottom:6px;">@ishmarexpo</div>
+          <div style="font-size:12px;color:var(--gray);">Follow on TikTok</div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section id="cta">
+    <div class="container">
+      <div class="cta-content">
+        <h2 class="cta-title">Want to be Part of<br>Our Next Event?</h2>
+        <p class="cta-text">Register as an exhibitor, sponsor, or attendee and be part of Africa's most exciting business events.</p>
+        <div class="cta-buttons">
+          <a href="contact.html" class="btn-cta-dark"><i class="fas fa-ticket-alt"></i> Register Now</a>
+          <a href="events.html"  class="btn-cta-outline"><i class="fas fa-calendar-alt"></i> View All Events</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer id="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="footer-logo-text">ISHMAR<span>EXPO</span></div>
+          <div class="footer-logo-sub">Limited</div>
+          <p class="footer-desc">Kenya's leading Halal exhibition and empowerment company — connecting businesses through the global Halal economy.</p>
+          <div class="footer-socials">
+            <a href="https://www.instagram.com/ishmarexpo" class="footer-social" target="_blank" rel="noopener" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+            <a href="https://www.facebook.com/ishmarexpo" class="footer-social" target="_blank" rel="noopener" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+            <a href="https://www.youtube.com/@ishmarexpo"  class="footer-social" target="_blank" rel="noopener" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+            <a href="https://www.linkedin.com/company/ishmarexpo" class="footer-social" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+            <a href="https://www.tiktok.com/@ishmarexpo" class="footer-social" target="_blank" rel="noopener" aria-label="TikTok"><i class="fab fa-tiktok"></i></a>
+          </div>
+        </div>
+        <div>
+          <div class="footer-col-title">Quick Links</div>
+          <ul class="footer-links">
+            <li><a href="index.html"    class="footer-link"><i class="fas fa-chevron-right"></i> Home</a></li>
+            <li><a href="about.html"    class="footer-link"><i class="fas fa-chevron-right"></i> About Us</a></li>
+            <li><a href="events.html"   class="footer-link"><i class="fas fa-chevron-right"></i> Events</a></li>
+            <li><a href="services.html" class="footer-link"><i class="fas fa-chevron-right"></i> Services</a></li>
+            <li><a href="gallery.html"  class="footer-link"><i class="fas fa-chevron-right"></i> Gallery</a></li>
+            <li><a href="media.html"    class="footer-link"><i class="fas fa-chevron-right"></i> Media &amp; Press</a></li>
+            <li><a href="contact.html"  class="footer-link"><i class="fas fa-chevron-right"></i> Contact Us</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-col-title">Our Services</div>
+          <ul class="footer-links">
+            <li><a href="services.html" class="footer-link"><i class="fas fa-chevron-right"></i> Halal Expos &amp; Trade Fairs</a></li>
+            <li><a href="services.html" class="footer-link"><i class="fas fa-chevron-right"></i> Corporate Halal Events</a></li>
+            <li><a href="services.html" class="footer-link"><i class="fas fa-chevron-right"></i> Halal Certification Guidance</a></li>
+            <li><a href="services.html" class="footer-link"><i class="fas fa-chevron-right"></i> Business Empowerment</a></li>
+            <li><a href="services.html" class="footer-link"><i class="fas fa-chevron-right"></i> Market Access &amp; Networking</a></li>
+            <li><a href="services.html" class="footer-link"><i class="fas fa-chevron-right"></i> SME Branding &amp; Media</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-col-title">Contact Us</div>
+          <div class="footer-contact-item">
+            <div class="footer-contact-icon"><i class="fas fa-map-marker-alt"></i></div>
+            <div class="footer-contact-text"><strong>Head Office</strong>Malindi / Nairobi, Kenya</div>
+          </div>
+          <div class="footer-contact-item">
+            <div class="footer-contact-icon"><i class="fas fa-phone"></i></div>
+            <div class="footer-contact-text"><strong>Phone</strong><a href="tel:+254721639164" style="color:inherit;">+254 721 639 164</a> / <a href="tel:+254729627162" style="color:inherit;">+254 729 627 162</a></div>
+          </div>
+          <div class="footer-contact-item">
+            <div class="footer-contact-icon"><i class="fas fa-envelope"></i></div>
+            <div class="footer-contact-text"><strong>Email</strong><a href="mailto:info@ishmarexpo.com" style="color:inherit;">info@ishmarexpo.com</a></div>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div class="footer-copy">&copy; 2026 <span>Ishmar Halal Traders Expo Ltd</span>. All rights reserved.</div>
+        <div class="footer-legal"><a href="#">Privacy Policy</a><a href="#">Terms of Service</a><a href="sitemap.xml">Sitemap</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <a href="https://wa.me/254721639164?text=Hello%20Ishmar%20Halal%20Traders%20Expo!%20I%20would%20like%20to%20inquire%20about%20your%20events%20and%20services." class="whatsapp-float" aria-label="WhatsApp" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i></a>
+  <button class="back-to-top" aria-label="Back to top"><i class="fas fa-chevron-up"></i></button>
+
+  <!-- Image Lightbox -->
+  <div class="img-lightbox" role="dialog" aria-label="Image viewer" aria-modal="true">
+    <button class="img-lightbox-close" aria-label="Close"><i class="fas fa-times"></i></button>
+    <button class="img-lightbox-nav img-lightbox-prev" aria-label="Previous"><i class="fas fa-chevron-left"></i></button>
+    <button class="img-lightbox-nav img-lightbox-next" aria-label="Next"><i class="fas fa-chevron-right"></i></button>
+    <div class="img-lightbox-content">
+      <img class="img-lightbox-img" src="" alt="" />
+    </div>
+  </div>
+
+  <!-- Video Lightbox -->
+  <div class="lightbox" role="dialog" aria-label="Video player" aria-modal="true">
+    <div class="lightbox-inner">
+      <button class="lightbox-close" aria-label="Close"><i class="fas fa-times"></i></button>
+      <iframe class="lightbox-iframe" allow="autoplay; encrypted-media" allowfullscreen title="Event Video"></iframe>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <script src="assets/js/main.js"></script>
+  <script src="assets/js/animations.js"></script>
+  <script>
+    // Load more button (show hidden items)
+    document.getElementById('load-more-btn')?.addEventListener('click', function() {
+      this.innerHTML = '<i class="fas fa-check"></i> All Photos Loaded';
+      this.disabled = true;
+      this.style.opacity = '0.5';
+    });
+
+    // Gallery filter for masonry
+    (function() {
+      const tabs  = document.querySelectorAll('.filter-tab');
+      const items = document.querySelectorAll('.masonry-item');
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          tabs.forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          const filter = tab.dataset.filter;
+          items.forEach(item => {
+            const match = filter === 'all' || item.dataset.category === filter;
+            item.style.opacity = match ? '1' : '0.15';
+            item.style.pointerEvents = match ? '' : 'none';
+          });
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

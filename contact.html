@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Contact Ishmar Halal Traders Expo Ltd — Get in touch for event inquiries, Halal certification support, exhibition bookings, empowerment programs, and general information." />
+  <title>Contact Us | Ishmar Halal Traders Expo Ltd</title>
+  <link rel="canonical" href="https://ishmarexpo.com/contact.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,600&family=Montserrat:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+  <link rel="stylesheet" href="assets/css/main.css" />
+  <link rel="stylesheet" href="assets/css/animations.css" />
+  <style>
+    .inquiry-tabs { display:flex; gap:8px; margin-bottom:28px; flex-wrap:wrap; }
+    .inquiry-tab {
+      font-family:var(--font-heading); font-size:11px; font-weight:600;
+      letter-spacing:1.5px; text-transform:uppercase;
+      padding:10px 20px; border-radius:8px;
+      border:1.5px solid var(--border); color:var(--gray);
+      background:transparent; cursor:pointer; transition:all 0.3s;
+    }
+    .inquiry-tab.active { background:var(--gold); border-color:var(--gold); color:var(--dark); }
+    .office-card {
+      background:var(--glass-card); border:1px solid var(--border);
+      border-radius:var(--radius-lg); padding:32px;
+      transition:transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+    }
+    .office-card:hover { transform:translateY(-4px); box-shadow:var(--shadow-card); border-color:rgba(201,162,39,0.4); }
+    .office-flag { font-size:28px; margin-bottom:14px; }
+    .office-country { font-family:var(--font-heading); font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--gold); margin-bottom:8px; }
+    .office-name { font-family:var(--font-display); font-size:20px; font-weight:700; color:var(--white); margin-bottom:16px; }
+    .office-details { display:flex; flex-direction:column; gap:10px; }
+    .office-detail { display:flex; align-items:flex-start; gap:10px; font-size:13px; color:var(--gray); line-height:1.6; }
+    .office-detail i { color:var(--gold); font-size:11px; margin-top:3px; width:14px; flex-shrink:0; }
+    .social-connect-card {
+      background:var(--glass-card); border:1px solid var(--border);
+      border-radius:var(--radius-lg); padding:24px;
+      display:flex; align-items:center; gap:16px;
+      transition:transform 0.3s, border-color 0.3s;
+      text-decoration:none;
+    }
+    .social-connect-card:hover { transform:translateY(-4px); border-color:var(--gold); }
+    .social-connect-icon { width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+    .social-connect-info {}
+    .social-connect-name { font-family:var(--font-heading); font-size:13px; font-weight:700; color:var(--white); margin-bottom:2px; }
+    .social-connect-handle { font-size:12px; color:var(--gray); }
+    .faq-item {
+      background:var(--glass-card); border:1px solid var(--border);
+      border-radius:var(--radius); overflow:hidden; margin-bottom:10px;
+    }
+    .accordion-header {
+      padding:20px 24px; display:flex; align-items:center;
+      justify-content:space-between; cursor:pointer; gap:16px;
+      font-family:var(--font-heading); font-size:14px; font-weight:600;
+      color:var(--white); transition:color 0.3s;
+    }
+    .accordion-header:hover { color:var(--gold); }
+    .accordion-header i { color:var(--gold); transition:transform 0.3s; flex-shrink:0; font-size:12px; }
+    .faq-item.open .accordion-header i { transform:rotate(180deg); }
+    .accordion-body {
+      max-height:0; overflow:hidden;
+      transition:max-height 0.4s ease;
+      padding:0 24px; font-size:14px; color:var(--gray); line-height:1.8;
+    }
+    .faq-item.open .accordion-body { padding-bottom:20px; }
+  </style>
+</head>
+<body class="loading">
+
+  <div id="scroll-progress"></div>
+  <div id="preloader">
+    <div class="preloader-logo">ISHMAR<span>EXPO</span></div>
+    <div class="preloader-tagline">Where Visions Meet the World</div>
+    <div class="preloader-bar-wrap"><div class="preloader-bar"></div></div>
+  </div>
+  <div class="cursor-dot" aria-hidden="true"></div>
+  <div class="cursor-ring" aria-hidden="true"></div>
+
+  <nav id="navbar">
+    <div class="nav-container">
+      <a href="index.html" class="nav-logo">
+        <div class="nav-logo-main">ISHMAR<span>EXPO</span></div>
+        <div class="nav-logo-sub">LIMITED</div>
+      </a>
+      <ul class="nav-links">
+        <li><a href="index.html"    class="nav-link">Home</a></li>
+        <li><a href="about.html"    class="nav-link">About</a></li>
+        <li><a href="events.html"   class="nav-link">Events</a></li>
+        <li><a href="services.html" class="nav-link">Services</a></li>
+        <li><a href="gallery.html"  class="nav-link">Gallery</a></li>
+        <li><a href="media.html"    class="nav-link">Media</a></li>
+        <li><a href="contact.html"  class="nav-link active">Contact</a></li>
+      </ul>
+      <a href="contact.html" class="nav-cta">Get In Touch</a>
+      <button class="nav-hamburger" aria-label="Toggle mobile menu"><span></span><span></span><span></span></button>
+    </div>
+  </nav>
+  <div class="nav-mobile">
+    <a href="index.html"    class="nav-mobile-link">Home</a>
+    <a href="about.html"    class="nav-mobile-link">About</a>
+    <a href="events.html"   class="nav-mobile-link">Events</a>
+    <a href="services.html" class="nav-mobile-link">Services</a>
+    <a href="gallery.html"  class="nav-mobile-link">Gallery</a>
+    <a href="media.html"    class="nav-mobile-link">Media</a>
+    <a href="contact.html"  class="nav-mobile-link active">Contact</a>
+  </div>
+
+  <!-- PAGE HERO -->
+  <section class="page-hero">
+    <div class="page-hero-bg"></div>
+    <div class="page-hero-pattern"></div>
+    <div class="page-hero-glow"></div>
+    <div class="page-hero-content">
+      <div class="page-breadcrumb">
+        <a href="index.html">Home</a>
+        <i class="fas fa-chevron-right" style="font-size:9px;"></i>
+        <span>Contact Us</span>
+      </div>
+      <h1 class="page-hero-title">Let's Start a<br><em>Conversation</em></h1>
+      <p class="page-hero-sub">Whether you're an exhibitor, sponsor, media partner, or visitor — we'd love to hear from you.</p>
+    </div>
+  </section>
+
+  <!-- ═══ CONTACT SECTION ═══ -->
+  <section class="section" style="background:var(--dark);">
+    <div class="container">
+      <div class="contact-grid">
+
+        <!-- Contact Info -->
+        <div data-aos="fade-right">
+          <div class="section-label">Get In Touch</div>
+          <h2 class="section-title">We're Always<br><em>Here For You</em></h2>
+          <div class="gold-line"></div>
+          <p style="font-size:16px;color:var(--gray);line-height:1.9;margin:20px 0 32px;">
+            Our team is available Monday to Friday, 8AM–6PM EAT. For urgent event-related inquiries, reach us on WhatsApp for faster response.
+          </p>
+
+          <div class="contact-info-item">
+            <div class="contact-info-icon"><i class="fas fa-map-marker-alt"></i></div>
+            <div>
+              <div class="contact-info-label">Head Office</div>
+              <div class="contact-info-value">Malindi / Nairobi, Kenya<br><small style="color:var(--gray);">Founded in Malindi, October 2023</small></div>
+            </div>
+          </div>
+
+          <div class="contact-info-item">
+            <div class="contact-info-icon"><i class="fas fa-phone-alt"></i></div>
+            <div>
+              <div class="contact-info-label">Phone</div>
+              <div class="contact-info-value">
+                <a href="tel:+254721639164" style="color:inherit;">+254 721 639 164</a><br>
+                <a href="tel:+254729627162" style="color:inherit;">+254 729 627 162</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="contact-info-item">
+            <div class="contact-info-icon"><i class="fas fa-envelope"></i></div>
+            <div>
+              <div class="contact-info-label">Email</div>
+              <div class="contact-info-value">
+                <a href="mailto:info@ishmarexpo.com" style="color:inherit;">info@ishmarexpo.com</a><br>
+                <a href="mailto:events@ishmarexpo.com" style="color:inherit;">events@ishmarexpo.com</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="contact-info-item">
+            <div class="contact-info-icon"><i class="fab fa-whatsapp"></i></div>
+            <div>
+              <div class="contact-info-label">WhatsApp</div>
+              <div class="contact-info-value">
+                <a href="https://wa.me/254721639164?text=Hello%20Ishmar%20Halal%20Traders%20Expo!%20I%20would%20like%20to%20inquire%20about%20your%20events%20and%20services." target="_blank" rel="noopener" style="color:var(--gold);">
+                  +254 721 639 164 — Chat on WhatsApp →
+                </a><br>
+                <a href="https://wa.me/254729627162?text=Hello%20Ishmar%20Halal%20Traders%20Expo!%20I%20would%20like%20to%20inquire%20about%20your%20events." target="_blank" rel="noopener" style="color:var(--gold); margin-top:4px; display:inline-block;">
+                  +254 729 627 162 — Chat on WhatsApp →
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div class="contact-info-item">
+            <div class="contact-info-icon"><i class="fas fa-clock"></i></div>
+            <div>
+              <div class="contact-info-label">Office Hours</div>
+              <div class="contact-info-value">
+                Monday – Friday: 8:00 AM – 6:00 PM EAT<br>
+                Saturday: 9:00 AM – 1:00 PM EAT
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contact Form -->
+        <div data-aos="fade-left">
+          <div class="contact-form">
+            <h3 style="font-family:var(--font-display);font-size:28px;font-weight:700;color:var(--white);margin-bottom:8px;">Send Us a Message</h3>
+            <p style="font-size:14px;color:var(--gray);margin-bottom:28px;">We'll get back to you within 24 business hours.</p>
+
+            <!-- Inquiry Type Tabs -->
+            <div class="inquiry-tabs">
+              <button class="inquiry-tab active" type="button">General Inquiry</button>
+              <button class="inquiry-tab" type="button">Exhibitor Inquiry</button>
+              <button class="inquiry-tab" type="button">Halal Certification</button>
+              <button class="inquiry-tab" type="button">Partnership</button>
+            </div>
+
+            <form novalidate>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="first-name">First Name *</label>
+                  <input type="text" id="first-name" name="first_name" class="form-control" placeholder="John" required />
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="last-name">Last Name *</label>
+                  <input type="text" id="last-name" name="last_name" class="form-control" placeholder="Kamau" required />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="email">Email Address *</label>
+                  <input type="email" id="email" name="email" class="form-control" placeholder="john@company.com" required />
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="phone">Phone Number</label>
+                  <input type="tel" id="phone" name="phone" class="form-control" placeholder="+254 700 000 000" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="company">Company / Organization</label>
+                <input type="text" id="company" name="company" class="form-control" placeholder="Your Company Name" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="subject">Subject *</label>
+                <select id="subject" name="subject" class="form-control form-select" required>
+                  <option value="" disabled selected>Select Inquiry Type</option>
+                  <option value="general">General Information</option>
+                  <option value="exhibitor">Exhibitor Booth Inquiry</option>
+                  <option value="halal">Halal Certification Support</option>
+                  <option value="empowerment">Empowerment Programs (Youth/Women)</option>
+                  <option value="registration">Event Registration</option>
+                  <option value="speaker">Speaker / Panelist Invitation</option>
+                  <option value="partnership">Government / NGO Partnership</option>
+                  <option value="investor">Investor &amp; Mentor Interest</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="event">Interested Event (Optional)</label>
+                <select id="event" name="event" class="form-control form-select">
+                  <option value="" selected>Select an Event</option>
+                  <option>Nairobi Ishmar Traders Expo 2024 (Past — Gallery Inquiry)</option>
+                  <option>Nairobi Ishmar Halal Traders Expo 2026 (TBA)</option>
+                  <option>Halal Business Empowerment Forum 2026 (TBA)</option>
+                  <option>Halal Certification &amp; Market Access Summit 2026 (TBA)</option>
+                  <option>Corporate Halal Business Summit 2026 (TBA)</option>
+                  <option>General / Multiple Events</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="message">Message *</label>
+                <textarea id="message" name="message" class="form-control" rows="5" placeholder="Tell us about your inquiry, requirements, or how we can help..." required></textarea>
+              </div>
+              <div style="margin-bottom:20px;">
+                <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
+                  <input type="checkbox" style="margin-top:3px;accent-color:var(--gold);" />
+                  <span style="font-size:13px;color:var(--gray);line-height:1.6;">I agree to receive communications from Ishmar Expo Limited and understand I can unsubscribe at any time. View our <a href="#" style="color:var(--gold);">Privacy Policy</a>.</span>
+                </label>
+              </div>
+              <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:18px;">
+                <i class="fas fa-paper-plane"></i> Send Message
+              </button>
+            </form>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ MAP ═══ -->
+  <section style="background:var(--primary);">
+    <div class="container" style="padding-bottom:0;">
+      <div class="section-header center" style="padding-top:80px;">
+        <div class="section-label">Our Location</div>
+        <h2 class="section-title">Find <em>Us</em></h2>
+        <div class="gold-line center"></div>
+      </div>
+    </div>
+    <div class="map-wrap" style="margin:40px 40px 0; border-radius:var(--radius-lg) var(--radius-lg) 0 0;">
+      <iframe
+        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d63830.7!2d40.1169!3d-3.2175!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x183fbc4e9e59e26f%3A0x7e4f6da35b0e4c8f!2sMalindi%2C%20Kenya!5e0!3m2!1sen!2ske!4v1621234567890!5m2!1sen!2ske"
+        width="100%"
+        height="450"
+        style="border:0; display:block; filter:invert(1) hue-rotate(180deg) saturate(0.5);"
+        allowfullscreen=""
+        loading="lazy"
+        title="Ishmar Halal Traders Expo — Malindi, Kenya"
+        referrerpolicy="no-referrer-when-downgrade">
+      </iframe>
+    </div>
+  </section>
+
+  <!-- ═══ GLOBAL OFFICES ═══ -->
+  <section class="section" style="background:var(--primary);">
+    <div class="container">
+      <div class="section-header center">
+        <div class="section-label">Our Location</div>
+        <h2 class="section-title">Based in <em>Kenya</em>, Serving Africa</h2>
+        <div class="gold-line center"></div>
+        <p class="section-subtitle">Headquartered in Kenya with operations spanning East Africa and growing pan-African partnerships.</p>
+      </div>
+      <div class="grid grid-3" style="gap:24px;">
+        <div class="office-card" data-aos="fade-up" data-aos-delay="0">
+          <div class="office-flag">🇰🇪</div>
+          <div class="office-country">Kenya — Founded Here</div>
+          <div class="office-name">Malindi</div>
+          <div class="office-details">
+            <div class="office-detail"><i class="fas fa-map-marker-alt"></i> Malindi, Kilifi County, Kenya</div>
+            <div class="office-detail"><i class="fas fa-phone"></i> <a href="tel:+254721639164" style="color:inherit;">+254 721 639 164</a></div>
+            <div class="office-detail"><i class="fas fa-envelope"></i> <a href="mailto:info@ishmarexpo.com" style="color:inherit;">info@ishmarexpo.com</a></div>
+          </div>
+        </div>
+        <div class="office-card" data-aos="fade-up" data-aos-delay="120">
+          <div class="office-flag">🇰🇪</div>
+          <div class="office-country">Kenya — Operations</div>
+          <div class="office-name">Nairobi</div>
+          <div class="office-details">
+            <div class="office-detail"><i class="fas fa-map-marker-alt"></i> Nairobi, Kenya</div>
+            <div class="office-detail"><i class="fas fa-phone"></i> <a href="tel:+254729627162" style="color:inherit;">+254 729 627 162</a></div>
+            <div class="office-detail"><i class="fas fa-envelope"></i> <a href="mailto:events@ishmarexpo.com" style="color:inherit;">events@ishmarexpo.com</a></div>
+          </div>
+        </div>
+        <div class="office-card" data-aos="fade-up" data-aos-delay="240">
+          <div class="office-flag">🌍</div>
+          <div class="office-country">Pan-Africa</div>
+          <div class="office-name">Expanding</div>
+          <div class="office-details">
+            <div class="office-detail"><i class="fas fa-globe-africa"></i> Seeking partnerships across East &amp; West Africa</div>
+            <div class="office-detail"><i class="fas fa-handshake"></i> Government &amp; NGO partnerships welcome</div>
+            <div class="office-detail"><i class="fas fa-envelope"></i> <a href="mailto:info@ishmarexpo.com" style="color:inherit;">info@ishmarexpo.com</a></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ SOCIAL CONNECT ═══ -->
+  <section class="section" style="background:var(--dark);">
+    <div class="container">
+      <div class="section-header center">
+        <div class="section-label">Stay Connected</div>
+        <h2 class="section-title">Follow &amp; <em>Connect</em></h2>
+        <div class="gold-line center"></div>
+      </div>
+      <div class="grid grid-3" style="gap:20px;">
+        <a href="https://www.instagram.com/ishmarexpo" target="_blank" rel="noopener" class="social-connect-card" data-aos="fade-up" data-aos-delay="0">
+          <div class="social-connect-icon" style="background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);"><i class="fab fa-instagram" style="color:white;"></i></div>
+          <div class="social-connect-info">
+            <div class="social-connect-name">Instagram</div>
+            <div class="social-connect-handle">@ishmarexpo</div>
+          </div>
+          <i class="fas fa-external-link-alt" style="color:var(--gray);font-size:12px;margin-left:auto;"></i>
+        </a>
+        <a href="https://www.facebook.com/ishmarexpo" target="_blank" rel="noopener" class="social-connect-card" data-aos="fade-up" data-aos-delay="80">
+          <div class="social-connect-icon" style="background:#1877F2;"><i class="fab fa-facebook-f" style="color:white;"></i></div>
+          <div class="social-connect-info">
+            <div class="social-connect-name">Facebook</div>
+            <div class="social-connect-handle">Ishmar Expo Limited</div>
+          </div>
+          <i class="fas fa-external-link-alt" style="color:var(--gray);font-size:12px;margin-left:auto;"></i>
+        </a>
+        <a href="https://www.youtube.com/@ishmarexpo" target="_blank" rel="noopener" class="social-connect-card" data-aos="fade-up" data-aos-delay="160">
+          <div class="social-connect-icon" style="background:#FF0000;"><i class="fab fa-youtube" style="color:white;"></i></div>
+          <div class="social-connect-info">
+            <div class="social-connect-name">YouTube</div>
+            <div class="social-connect-handle">@ishmarexpo</div>
+          </div>
+          <i class="fas fa-external-link-alt" style="color:var(--gray);font-size:12px;margin-left:auto;"></i>
+        </a>
+        <a href="https://www.linkedin.com/company/ishmarexpo" target="_blank" rel="noopener" class="social-connect-card" data-aos="fade-up" data-aos-delay="0">
+          <div class="social-connect-icon" style="background:#0A66C2;"><i class="fab fa-linkedin-in" style="color:white;"></i></div>
+          <div class="social-connect-info">
+            <div class="social-connect-name">LinkedIn</div>
+            <div class="social-connect-handle">Ishmar Expo Limited</div>
+          </div>
+          <i class="fas fa-external-link-alt" style="color:var(--gray);font-size:12px;margin-left:auto;"></i>
+        </a>
+        <a href="https://www.tiktok.com/@ishmarexpo" target="_blank" rel="noopener" class="social-connect-card" data-aos="fade-up" data-aos-delay="80">
+          <div class="social-connect-icon" style="background:var(--dark);border:1px solid var(--border);"><i class="fab fa-tiktok" style="color:white;"></i></div>
+          <div class="social-connect-info">
+            <div class="social-connect-name">TikTok</div>
+            <div class="social-connect-handle">@ishmarexpo</div>
+          </div>
+          <i class="fas fa-external-link-alt" style="color:var(--gray);font-size:12px;margin-left:auto;"></i>
+        </a>
+        <a href="https://wa.me/254721639164?text=Hello%20Ishmar%20Halal%20Traders%20Expo!%20I%20would%20like%20to%20inquire%20about%20your%20events%20and%20services." target="_blank" rel="noopener" class="social-connect-card" data-aos="fade-up" data-aos-delay="160">
+          <div class="social-connect-icon" style="background:#25D366;"><i class="fab fa-whatsapp" style="color:white;"></i></div>
+          <div class="social-connect-info">
+            <div class="social-connect-name">WhatsApp</div>
+            <div class="social-connect-handle">+254 721 639 164</div>
+          </div>
+          <i class="fas fa-external-link-alt" style="color:var(--gray);font-size:12px;margin-left:auto;"></i>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ FAQ ═══ -->
+  <section class="section" style="background:var(--primary);">
+    <div class="container">
+      <div class="section-header center">
+        <div class="section-label">FAQ</div>
+        <h2 class="section-title">Frequently Asked <em>Questions</em></h2>
+        <div class="gold-line center"></div>
+      </div>
+      <div style="max-width:760px;margin:0 auto;">
+
+        <div class="faq-item accordion-item" data-aos="fade-up">
+          <div class="accordion-header">How do I register as an exhibitor at an Ishmar Halal Traders Expo? <i class="fas fa-chevron-down"></i></div>
+          <div class="accordion-body">
+            To register as an exhibitor, fill out the contact form above or WhatsApp us on +254 721 639 164. Our team will send you a comprehensive exhibitor pack with booth options, pricing, and registration forms. We welcome SMEs, youth-led and women-led businesses of all sizes.
+          </div>
+        </div>
+
+        <div class="faq-item accordion-item" data-aos="fade-up">
+          <div class="accordion-header">How does ISHMAR help businesses get Halal certified? <i class="fas fa-chevron-down"></i></div>
+          <div class="accordion-body">
+            We provide guidance, consultation, and connections to accredited Halal certification bodies. Through our events and dedicated certification programs, we have helped 50+ businesses achieve Halal certification. Contact us to start your Halal certification journey — it is the gateway to global Halal markets.
+          </div>
+        </div>
+
+        <div class="faq-item accordion-item" data-aos="fade-up">
+          <div class="accordion-header">Can I attend events as a visitor and do I need to pay? <i class="fas fa-chevron-down"></i></div>
+          <div class="accordion-body">
+            Yes! ISHMAR events are designed to be inclusive and accessible. Many events offer free or affordable visitor registration, especially for youth and community members. Our mission is to remove barriers to participation — contact us for current event pricing and registration details.
+          </div>
+        </div>
+
+        <div class="faq-item accordion-item" data-aos="fade-up">
+          <div class="accordion-header">What empowerment programs does ISHMAR offer? <i class="fas fa-chevron-down"></i></div>
+          <div class="accordion-body">
+            We run youth entrepreneurship forums, women-led business platforms, mentorship sessions, skills training workshops, and thought leadership panels. We have trained 1,000+ youth and entrepreneurs. Contact us to find out about upcoming programs or to partner in delivering empowerment training.
+          </div>
+        </div>
+
+        <div class="faq-item accordion-item" data-aos="fade-up">
+          <div class="accordion-header">How can governments and NGOs partner with ISHMAR? <i class="fas fa-chevron-down"></i></div>
+          <div class="accordion-body">
+            ISHMAR actively seeks partnerships with governments and development organizations to support affordable SME expo participation. Many small businesses cannot afford exhibitor fees — we welcome co-funding, subsidized participation, and institutional partnership arrangements. Email info@ishmarexpo.com or WhatsApp us to discuss partnership opportunities.
+          </div>
+        </div>
+
+        <div class="faq-item accordion-item" data-aos="fade-up">
+          <div class="accordion-header">Can ISHMAR manage our private corporate Halal event? <i class="fas fa-chevron-down"></i></div>
+          <div class="accordion-body">
+            Yes! In addition to our flagship public expos, we offer complete corporate Halal event management — from conferences and product launches to gala dinners and faith-based organizational events. Contact us with your brief and we'll respond with a tailored Halal-compliant proposal.
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer id="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="footer-logo-text">ISHMAR<span>EXPO</span></div>
+          <div class="footer-logo-sub">Limited</div>
+          <p class="footer-desc">Africa's leading Halal exhibition and empowerment company — connecting African SMEs, youth, and women entrepreneurs to the global Halal economy since 2023.</p>
+          <div class="footer-socials">
+            <a href="https://www.instagram.com/ishmarexpo" class="footer-social" target="_blank" rel="noopener" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+            <a href="https://www.facebook.com/ishmarexpo" class="footer-social" target="_blank" rel="noopener" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+            <a href="https://www.youtube.com/@ishmarexpo"  class="footer-social" target="_blank" rel="noopener" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+            <a href="https://www.linkedin.com/company/ishmarexpo" class="footer-social" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+            <a href="https://www.tiktok.com/@ishmarexpo" class="footer-social" target="_blank" rel="noopener" aria-label="TikTok"><i class="fab fa-tiktok"></i></a>
+          </div>
+        </div>
+        <div>
+          <div class="footer-col-title">Quick Links</div>
+          <ul class="footer-links">
+            <li><a href="index.html"    class="footer-link"><i class="fas fa-chevron-right"></i> Home</a></li>
+            <li><a href="about.html"    class="footer-link"><i class="fas fa-chevron-right"></i> About Us</a></li>
+            <li><a href="events.html"   class="footer-link"><i class="fas fa-chevron-right"></i> Events</a></li>
+            <li><a href="services.html" class="footer-link"><i class="fas fa-chevron-right"></i> Services</a></li>
+            <li><a href="gallery.html"  class="footer-link"><i class="fas fa-chevron-right"></i> Gallery</a></li>
+            <li><a href="media.html"    class="footer-link"><i class="fas fa-chevron-right"></i> Media &amp; Press</a></li>
+            <li><a href="contact.html"  class="footer-link"><i class="fas fa-chevron-right"></i> Contact Us</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-col-title">Our Services</div>
+          <ul class="footer-links">
+            <li><a href="services.html" class="footer-link"><i class="fas fa-chevron-right"></i> Halal Expos &amp; Trade Fairs</a></li>
+            <li><a href="services.html" class="footer-link"><i class="fas fa-chevron-right"></i> Corporate Halal Events</a></li>
+            <li><a href="services.html" class="footer-link"><i class="fas fa-chevron-right"></i> Halal Certification Support</a></li>
+            <li><a href="services.html" class="footer-link"><i class="fas fa-chevron-right"></i> Business Empowerment</a></li>
+            <li><a href="services.html" class="footer-link"><i class="fas fa-chevron-right"></i> SME Market Access</a></li>
+            <li><a href="services.html" class="footer-link"><i class="fas fa-chevron-right"></i> Branding &amp; Media Support</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-col-title">Contact Us</div>
+          <div class="footer-contact-item">
+            <div class="footer-contact-icon"><i class="fas fa-map-marker-alt"></i></div>
+            <div class="footer-contact-text"><strong>Head Office</strong>Malindi / Nairobi, Kenya</div>
+          </div>
+          <div class="footer-contact-item">
+            <div class="footer-contact-icon"><i class="fas fa-phone"></i></div>
+            <div class="footer-contact-text"><strong>Phone</strong><a href="tel:+254721639164" style="color:inherit;">+254 721 639 164</a></div>
+          </div>
+          <div class="footer-contact-item">
+            <div class="footer-contact-icon"><i class="fas fa-envelope"></i></div>
+            <div class="footer-contact-text"><strong>Email</strong><a href="mailto:info@ishmarexpo.com" style="color:inherit;">info@ishmarexpo.com</a></div>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div class="footer-copy">&copy; 2026 <span>Ishmar Expo Limited</span>. All rights reserved.</div>
+        <div class="footer-legal"><a href="#">Privacy Policy</a><a href="#">Terms of Service</a><a href="sitemap.xml">Sitemap</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <a href="https://wa.me/254721639164?text=Hello%20Ishmar%20Halal%20Traders%20Expo!%20I%20would%20like%20to%20inquire%20about%20your%20events%20and%20services." class="whatsapp-float" aria-label="Chat on WhatsApp" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i></a>
+  <button class="back-to-top" aria-label="Back to top"><i class="fas fa-chevron-up"></i></button>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <script src="assets/js/main.js"></script>
+  <script src="assets/js/animations.js"></script>
+  <script>
+    // Inquiry tabs (highlight form, no content switch needed)
+    document.querySelectorAll('.inquiry-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.inquiry-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        // Update select to match tab
+        const subjectEl = document.getElementById('subject');
+        if (!subjectEl) return;
+        const map = {
+          'General Inquiry': 'general',
+          'Exhibitor Inquiry': 'exhibitor',
+          'Sponsorship': 'sponsorship',
+          'Media & Press': 'media'
+        };
+        const val = map[tab.textContent.trim()];
+        if (val) subjectEl.value = val;
+      });
+    });
+  </script>
+</body>
+</html>
