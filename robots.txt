@@ -1,7 +1,7 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://ishmarexpo.com/sitemap.xml
+Sitemap: https://www.ishmarexpo.com/sitemap.xml
 
 # Block admin/private areas if any are added later
 Disallow: /admin/
