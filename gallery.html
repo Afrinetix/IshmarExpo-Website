@@ -536,6 +536,7 @@
   <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
   <script src="assets/js/main.js"></script>
   <script src="assets/js/animations.js"></script>
+  <script type="module" src="assets/js/dynamic-gallery.js"></script>
   <script>
     // Load more button (show hidden items)
     document.getElementById('load-more-btn')?.addEventListener('click', function() {
@@ -544,16 +545,17 @@
       this.style.opacity = '0.5';
     });
 
-    // Gallery filter for masonry
+    // Gallery filter for masonry — items queried live (not captured once)
+    // since assets/js/dynamic-gallery.js replaces the grid's contents
+    // asynchronously after this script runs.
     (function() {
-      const tabs  = document.querySelectorAll('.filter-tab');
-      const items = document.querySelectorAll('.masonry-item');
+      const tabs = document.querySelectorAll('.filter-tab');
       tabs.forEach(tab => {
         tab.addEventListener('click', () => {
           tabs.forEach(t => t.classList.remove('active'));
           tab.classList.add('active');
           const filter = tab.dataset.filter;
-          items.forEach(item => {
+          document.querySelectorAll('.masonry-item').forEach(item => {
             const match = filter === 'all' || item.dataset.category === filter;
             item.style.opacity = match ? '1' : '0.15';
             item.style.pointerEvents = match ? '' : 'none';

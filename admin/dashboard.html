@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Dashboard | Ishmar Expo Admin</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/admin.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar-root"></aside>
+    <div class="main">
+      <header class="topbar" id="topbar-root"></header>
+      <div class="content">
+
+        <div class="stat-cards" id="stat-cards">
+          <div class="stat-card"><span class="spinner"></span></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Quick Actions</div>
+          </div>
+          <div class="panel-body" style="display:flex; flex-wrap:wrap; gap:12px;">
+            <a href="events.html" class="btn btn-primary"><i class="fas fa-calendar-plus"></i> New Event</a>
+            <a href="gallery.html" class="btn btn-outline"><i class="fas fa-image"></i> Upload Photos</a>
+            <a href="settings.html" class="btn btn-outline"><i class="fas fa-gear"></i> Edit Site Settings</a>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Upcoming Events</div>
+            <a href="events.html" class="btn btn-ghost btn-sm">Manage all <i class="fas fa-arrow-right"></i></a>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table" id="upcoming-table">
+              <thead><tr><th>Event</th><th>Dates</th><th>Venue</th><th>Status</th></tr></thead>
+              <tbody><tr><td colspan="4" class="state-msg"><span class="spinner"></span></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-stack"></div>
+
+  <script type="module">
+    import { initShell, toastError, escapeHtml } from './js/dashboard-shell.js';
+    import { getAllEventsForAdmin, getUpcomingEvents } from '../supabase/events.js';
+    import { getAllGalleryForAdmin } from '../supabase/gallery.js';
+
+    const profile = await initShell({ active: 'dashboard.html', title: 'Dashboard' });
+    if (!profile) throw new Error('redirecting');
+
+    function fmtDate(iso) {
+      return new Date(iso).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    async function loadStats() {
+      try {
+        const [events, gallery] = await Promise.all([getAllEventsForAdmin(), getAllGalleryForAdmin()]);
+        const published = events.filter((e) => e.published).length;
+        const upcoming = events.filter((e) => e.published && new Date(e.end_date) >= new Date()).length;
+
+        document.getElementById('stat-cards').innerHTML = `
+          <div class="stat-card">
+            <div class="stat-card-icon"><i class="fas fa-calendar-star"></i></div>
+            <div><div class="stat-card-num">${events.length}</div><div class="stat-card-label">Total Events</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon"><i class="fas fa-bell"></i></div>
+            <div><div class="stat-card-num">${upcoming}</div><div class="stat-card-label">Upcoming (Published)</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon"><i class="fas fa-eye"></i></div>
+            <div><div class="stat-card-num">${published}</div><div class="stat-card-label">Published Events</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon"><i class="fas fa-images"></i></div>
+            <div><div class="stat-card-num">${gallery.length}</div><div class="stat-card-label">Gallery Images</div></div>
+          </div>`;
+      } catch (err) {
+        toastError(err);
+      }
+    }
+
+    async function loadUpcoming() {
+      const tbody = document.querySelector('#upcoming-table tbody');
+      try {
+        const events = await getUpcomingEvents({ limit: 6 });
+        if (!events.length) {
+          tbody.innerHTML = '<tr><td colspan="4" class="state-msg"><i class="fas fa-calendar-xmark"></i>No upcoming published events yet.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = events.map((e) => `
+          <tr>
+            <td><strong>${escapeHtml(e.title)}</strong></td>
+            <td>${fmtDate(e.start_date)} – ${fmtDate(e.end_date)}</td>
+            <td>${escapeHtml(e.venue) || '—'}</td>
+            <td>${e.featured ? '<span class="badge badge-gold">Featured</span>' : '<span class="badge badge-success">Published</span>'}</td>
+          </tr>`).join('');
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="4" class="state-msg">Could not load events.</td></tr>';
+        toastError(err);
+      }
+    }
+
+    loadStats();
+    loadUpcoming();
+  </script>
+</body>
+</html>

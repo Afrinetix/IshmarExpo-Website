@@ -1,8 +1,8 @@
-# Ishmar Expo Limited — Premium Website
+# Ishmar Expo Limited — Website & Admin Console
 
-**East Africa's Premier International Expo & Events Company**
+**Africa's Leading Halal Exhibition & Empowerment Company**
 
-A fully responsive, premium multipage website built with HTML5, CSS3, JavaScript, GSAP animations, Swiper.js, and AOS scroll animations.
+A premium, fully responsive multipage website (HTML5, CSS3, vanilla JavaScript ES6+, GSAP, Swiper.js, AOS) now backed by **Supabase** (PostgreSQL + Auth + Storage + Row Level Security) for content management — events, gallery, and site settings are editable from `/admin` without touching HTML or redeploying. See **Roadmap** below for what's still static and planned next.
 
 ---
 
@@ -10,205 +10,189 @@ A fully responsive, premium multipage website built with HTML5, CSS3, JavaScript
 
 ```
 ishmar-expo/
-├── index.html          ← Home page
-├── about.html          ← About Us
-├── events.html         ← Events Calendar
-├── gallery.html        ← Photo & Video Gallery
-├── services.html       ← Services & Packages
-├── media.html          ← Media / Press Center
-├── contact.html        ← Contact & Offices
-├── sitemap.xml         ← SEO sitemap
-├── robots.txt          ← Search engine rules
-├── README.md           ← This file
-└── assets/
-    ├── css/
-    │   ├── main.css        ← Complete design system
-    │   └── animations.css  ← Animation styles & keyframes
-    ├── js/
-    │   ├── main.js         ← Core functionality
-    │   └── animations.js   ← GSAP ScrollTrigger animations
-    ├── images/         ← Replace placeholders with actual brand images
-    ├── videos/         ← Local video assets
-    └── social/         ← Downloaded social media assets
+├── index.html, about.html, events.html, gallery.html,   ← Public pages
+│   services.html, media.html, contact.html, insights.html
+├── insights/                                             ← Blog articles (static)
+│
+├── admin/                          ← Admin console (Supabase-authenticated)
+│   ├── login.html                  ← Sign in / create account
+│   ├── dashboard.html              ← Overview + quick actions
+│   ├── events.html                 ← Full event CRUD (built)
+│   ├── gallery.html                ← Full gallery CRUD + bulk upload (built)
+│   ├── settings.html               ← Site-wide settings (built)
+│   ├── users.html                  ← Role management (built — Super Admin only writes)
+│   ├── videos.html, sponsors.html, partners.html,        ← Phase 2 (shell + nav
+│   │   testimonials.html, media.html, registrations.html,   built, CRUD not yet —
+│   │   messages.html                                        see Roadmap)
+│   ├── css/admin.css               ← Admin design system
+│   └── js/dashboard-shell.js       ← Shared sidebar/topbar/auth-guard/toasts
+│
+├── supabase/                       ← Data layer (ES modules, no build step)
+│   ├── schema.sql                  ← Run 1st: tables, types, triggers
+│   ├── storage-setup.sql           ← Run 2nd: storage buckets
+│   ├── policies.sql                ← Run 3rd: Row Level Security
+│   ├── config.js                   ← ⚠️ Put your Supabase URL/anon key here
+│   ├── client.js                   ← Shared Supabase client singleton
+│   ├── auth.js                     ← Sign in/up/out, session + role guards
+│   ├── storage.js                  ← Upload/delete/validate helper
+│   ├── events.js, gallery.js,      ← CRUD + public queries per content type
+│   │   settings.js
+│
+├── assets/
+│   ├── css/main.css, animations.css
+│   ├── js/main.js, animations.js   ← Original site interactivity (unchanged)
+│   ├── js/dom-safe.js              ← Shared XSS-escaping helpers
+│   ├── js/dynamic-home.js          ← Loads hero text/stats/events into index.html
+│   ├── js/dynamic-events.js        ← Loads the events.html grid
+│   ├── js/dynamic-gallery.js       ← Loads the gallery.html masonry grid
+│   └── images/, videos/
+│
+├── sitemap.xml, robots.txt
+├── SEO-GEO-AUDIT.md                ← SEO/GEO audit from the redesign pass
+└── package.json
 ```
 
 ---
 
-## Technologies Used
+## How the dynamic pages work (read this before editing)
 
-| Library       | Version | Purpose                          |
-|---------------|---------|----------------------------------|
-| GSAP          | 3.12.5  | Premium animations & ScrollTrigger |
-| Swiper.js     | 11.x    | Touch-friendly carousels         |
-| AOS           | 2.3.1   | Scroll-triggered reveal effects  |
-| Font Awesome  | 6.5.0   | Icons throughout the site        |
-| Google Fonts  | —       | Playfair Display, Montserrat, Inter |
+There is **no build step**. `supabase/*.js` and `assets/js/dynamic-*.js` are plain ES modules loaded via `<script type="module">`; `@supabase/supabase-js` loads from a CDN (`jsdelivr`), the same pattern already used for GSAP/AOS/Swiper.
+
+Each public page keeps its original static HTML as the first paint, and a `dynamic-*.js` module then fetches from Supabase and replaces the relevant section's contents (hero text, stat counters, the events grid, the gallery grid). If Supabase is unreachable, the page simply keeps showing its static fallback content instead of breaking — check the browser console for `[dynamic-*]` log lines if something isn't updating.
+
+**Intentionally still static in Phase 1** (see Roadmap for why and what's planned):
+- The hero's animated word-by-word headline ("Where Africa Meets the Halal World") — GSAP captures those spans as fixed references before any async data can arrive, so this specific animation would break if the words became dynamic. The eyebrow line and subtitle above/below it *are* dynamic.
+- The "Featured Event Spotlight" narrative section on events.html (hand-written two-column copy, not a simple field mapping).
+- about.html, services.html, media.html, contact.html, and the Insights blog — not wired to Supabase yet.
+- Videos, Sponsors, Partners, Testimonials, Media, Registrations, and the Contact form — tables/RLS/storage exist, admin CRUD UI doesn't yet.
+
+---
+
+## Setup
+
+### 1. Create a Supabase project
+Go to [supabase.com](https://supabase.com) → New Project. Note your **Project URL** and **anon/public key** from Project Settings → API — you'll need them in step 3.
+
+### 2. Run the SQL migrations, in this exact order
+Open the Supabase Dashboard → SQL Editor, and run each file's contents as a new query:
+
+1. `supabase/schema.sql` — creates all tables, the `user_role` enum, triggers, and seeds default `settings` rows.
+2. `supabase/storage-setup.sql` — creates the 7 storage buckets (`gallery`, `videos`, `documents`, `sponsors`, `partners`, `team`, `media`) with size/MIME-type limits.
+3. `supabase/policies.sql` — enables Row Level Security and creates every access policy (database + storage).
+
+### 3. Configure the site
+Edit `supabase/config.js` and replace the two placeholder values:
+
+```js
+export const SUPABASE_URL = 'https://YOUR-PROJECT-REF.supabase.co';
+export const SUPABASE_ANON_KEY = 'YOUR-PUBLIC-ANON-KEY';
+```
+
+The anon key is safe to ship in client code — it's meaningless without the RLS policies from step 2, which are what actually protect your data. **Never** put your `service_role` key in this file, anywhere in `/admin`, or in any file that ships to the browser.
+
+### 4. Create your first Super Admin
+There's no client-safe way to create the first admin (that would let anyone self-promote). One-time setup:
+
+1. Open `admin/login.html` locally (see "Local development" below), click **Create Account**, and sign up with your real email.
+2. In the Supabase SQL Editor, run:
+   ```sql
+   update public.users set role = 'super_admin' where email = 'you@example.com';
+   ```
+3. Sign in at `admin/login.html`. You now have full access, and can promote every future admin from **Users** in the sidebar — no SQL or service_role key needed again.
+
+### 5. Local development
+This is a static site — any static file server works:
+
+```bash
+npx serve .
+# or
+python -m http.server 8080
+```
+
+Then open `http://localhost:<port>/index.html` (public site) or `/admin/login.html` (admin console).
+
+### 6. Deploy to Vercel
+No build configuration needed — Vercel serves static files out of the box.
+
+```bash
+npm i -g vercel
+vercel
+```
+
+Or connect the GitHub repo in the Vercel dashboard and deploy with default settings (no framework preset, no build command).
+
+---
+
+## Roles
+
+| Role | Can do |
+|---|---|
+| `super_admin` | Everything, including changing other users' roles |
+| `admin` | Everything except changing roles |
+| `editor` | Create/edit events, gallery, videos, sponsors, partners, testimonials, media |
+| `event_manager` | Create/edit/delete events; read/manage registrations |
+| `media_manager` | Create/edit/delete gallery images and videos |
+| `viewer` | Read-only access to the admin console |
+| `pending` | Default for new signups — no admin access until promoted |
+
+The full policy-by-policy breakdown is in `supabase/policies.sql`; the client-side mirror (used only to hide/show UI, never a security boundary) is in `supabase/auth.js`.
+
+---
+
+## Adding admins day-to-day
+
+1. New person signs up at `admin/login.html` → they get `role = 'pending'` automatically (see `handle_new_user()` trigger in `schema.sql`) and cannot access anything yet.
+2. A Super Admin opens **Users** in the sidebar and changes their role in the dropdown.
+3. They sign in again (or refresh) and now have access matching their new role.
+
+---
+
+## Roadmap (Phase 2)
+
+Same proven pattern as Events/Gallery (a `supabase/*.js` module + an admin CRUD page + a public-page rewire) applied to the remaining content types. Their tables, RLS policies, and storage buckets already exist — only the admin UI and public-page wiring are left:
+
+- **Videos** — YouTube/Instagram links, thumbnails, featured toggle → wires into `index.html`'s video showcase and `media.html`.
+- **Sponsors / Partners** — logo upload, website, tier/description → wires into the homepage partner marquee.
+- **Testimonials** — photo, name, company, quote, featured toggle → wires into the homepage testimonial carousel.
+- **Media & Press** — press mentions (title, image, link) → wires into `media.html`.
+- **Registrations** — public registration form embedded on `events.html` (insert-only, RLS already enforces this), plus the admin Registrations page: search, filter by event, CSV export (native `Blob`, no dependency), Excel export (SheetJS via CDN), print attendee list.
+- **Messages** — wire `contact.html`'s form to `contact_messages` (insert-only), plus the admin inbox: unread/read/archive, search, reply-by-email (`mailto:` link).
+- **Users page polish** — currently role-only; could add profile editing, activity log.
+- **Dynamic hero headline** — if wanted, rebuild the GSAP word-reveal to regenerate `.hero-word`/`.hero-word-inner` spans from dynamic text *before* `heroAnimations()` runs (e.g. by inlining the settings fetch as a blocking script instead of a deferred module) rather than after.
+- **Rewire remaining pages** — about.html (team bios, stats), services.html (already rich static content — lower priority), contact.html (office list, socials from `settings`).
+
+---
+
+## Security notes
+
+- Every table has Row Level Security enabled with deny-by-default policies (`supabase/policies.sql`) — nothing in the JS layer is a real security boundary, it's UX only.
+- File uploads are validated twice: client-side in `supabase/storage.js` (fast feedback) and server-side via each bucket's `file_size_limit`/`allowed_mime_types` (`supabase/storage-setup.sql`) — the server-side check is what actually matters.
+- All DB-sourced text is HTML-escaped before being injected into the page (`assets/js/dom-safe.js` on the public site, `escapeHtml`/`safeUrl` exported from `admin/js/dashboard-shell.js` in the admin console) to prevent stored-XSS via event titles, captions, names, etc. URLs are scheme-checked (`http`/`https` only) before being used in `href`/`src`.
+- Postgres constraints (`email ~* '^[^@\s]+@[^@\s]+\.[^@\s]+$'`, `payment_status`/`contact_messages.status` enums, `end_date >= start_date`) provide defense-in-depth against malformed data regardless of what the client sends — combined with Supabase's parameterized query layer, this is what prevents SQL injection (there is no raw/string-concatenated SQL anywhere in this codebase).
+
+---
+
+## SEO / GEO
+
+Unchanged from the previous redesign pass — see `SEO-GEO-AUDIT.md` for the full audit, the local-SEO keyword map, and the content backlog. Note the trade-off documented there: structured data (JSON-LD) is still static HTML for crawler reliability; only the *visible* content on index/events/gallery is now Supabase-driven.
 
 ---
 
 ## Design System
 
-### Color Palette
+### Color Palette (current — white theme)
 ```css
---dark:       #070B16   /* Primary dark background */
---primary:    #0A1525   /* Section backgrounds */
---secondary:  #142240   /* Card/panel backgrounds */
---gold:       #C9A227   /* Brand accent — gold */
---gold-light: #E8C84A   /* Lighter gold highlights */
---gold-dark:  #9B7D1A   /* Deeper gold shadows */
---white:      #FFFFFF   /* Text, icons */
---gray:       #8A94A6   /* Muted text */
+--white:  #FFFFFF   /* Primary background */
+--primary: #F8F9FA  /* Light gray sections */
+--ink:    #12141C   /* Primary text */
+--gold:   #B8901E   /* Brand accent */
+--dark:   #0B1220   /* Intentional dark accent bands: hero, page headers, footer */
 ```
 
 ### Typography
-- **Display / Headings**: Playfair Display (serif — luxury, cinematic)
-- **Navigation / Labels**: Montserrat (modern, corporate)
-- **Body Text**: Inter (clean, readable)
-
-### Key Features
-- Cinematic preloader with animated logo
-- Custom gold cursor with magnetic effect
-- Fullscreen YouTube video hero with fallback gradient
-- GSAP ScrollTrigger scroll-based animations
-- Swiper.js carousels (testimonials, events, partners)
-- AOS reveal animations
-- Masonry photo gallery with lightbox
-- Video lightbox (YouTube embed)
-- Gallery category filter
-- Events filter (status + category)
-- Animated stat counters
-- Typewriter text effect
-- Floating particle system on hero
-- WhatsApp floating CTA
-- Back to top button
-- Scroll progress indicator
-- Mobile-first responsive design
-- Sticky translucent navbar
-- Accordion FAQ
-- Sponsorship packages table
-- Contact form with inquiry types
-- Google Maps embed
-- Press downloads section
-- Social media connect cards
-- Partner logo marquee scroll
-
----
-
-## Setup Instructions
-
-### Local Development
-
-1. **Clone / Download** the project folder to your computer
-
-2. **Open with Live Server** (VS Code extension recommended):
-   - Install "Live Server" extension in VS Code
-   - Right-click `index.html` → "Open with Live Server"
-   - Site opens at `http://localhost:5500`
-
-3. **Or simply open** `index.html` directly in any modern browser
-   - Note: Some features (Google Fonts, CDN libraries) require internet connection
-
----
-
-## Deployment Instructions
-
-### Option 1: Netlify (Recommended — Free)
-1. Go to [netlify.com](https://netlify.com) and create account
-2. Drag the entire `ishmar-expo` folder into Netlify's deploy dropzone
-3. Site is live instantly at a `.netlify.app` URL
-4. Connect custom domain in Netlify settings
-
-### Option 2: GitHub Pages (Free)
-```bash
-git init
-git add .
-git commit -m "Initial Ishmar Expo website"
-git branch -M main
-git remote add origin https://github.com/yourusername/ishmar-expo.git
-git push -u origin main
-```
-- Enable GitHub Pages in repo Settings → Pages → Deploy from `main` branch
-
-### Option 3: cPanel / Traditional Hosting
-1. Compress the `ishmar-expo` folder as a ZIP
-2. Upload via cPanel File Manager to `public_html/`
-3. Extract and ensure `index.html` is at the root
-
----
-
-## Customization Guide
-
-### Replacing Placeholder Images
-All images use Unsplash placeholders. Replace with actual Ishmar Expo photos:
-1. Add images to `/assets/images/`
-2. Update `src=""` attributes in each HTML file
-3. Recommended sizes:
-   - Hero: 1920×1080px minimum
-   - Event cards: 800×500px
-   - Gallery: Mixed heights (masonry)
-   - Team photos: 400×500px (portrait)
-
-### Adding Local Images from Desktop
-Copy images from `C:\Users\paul\Desktop\ISHMAR EXPO\` to `/assets/images/` and update image references:
-```html
-<!-- Change from: -->
-<img src="https://images.unsplash.com/..." />
-<!-- To: -->
-<img src="assets/images/your-photo.jpg" />
-```
-
-### Updating Contact Information
-Search and replace in all HTML files:
-- `+254 700 000 000` → actual phone number
-- `info@ishmarexpo.com` → actual email
-- `Westlands Business Centre, 5th Floor` → actual address
-- `https://wa.me/254700000000` → actual WhatsApp number
-
-### Adding Real Social Media Links
-Update all social links from placeholder URLs to actual profiles:
-```html
-href="https://www.instagram.com/ishmarexpo"
-href="https://www.facebook.com/ishmarexpo"
-href="https://www.youtube.com/@ishmarexpo"
-href="https://www.linkedin.com/company/ishmarexpo"
-href="https://www.tiktok.com/@ishmarexpo"
-```
-
-### Updating YouTube Videos
-The hero video and featured videos use YouTube embed ID `WT8jMjQo_to`.
-To use different videos, update the `data-video` attribute:
-```html
-<div class="video-card" data-video="YOUR_VIDEO_ID" data-platform="youtube">
-```
-
-### Google Maps
-Update the Maps iframe `src` in `contact.html` with your actual office coordinates.
-
----
-
-## SEO Configuration
-
-Update these in every HTML page `<head>`:
-```html
-<meta name="description" content="Your actual description" />
-<meta property="og:url" content="https://youractualdomain.com/" />
-<meta property="og:image" content="assets/images/og-home.jpg" />
-```
-
-Update `sitemap.xml` with your actual domain:
-```xml
-<loc>https://youractualdomain.com/</loc>
-```
-
----
-
-## Performance Tips
-
-1. **Compress images** before uploading using [TinyPNG](https://tinypng.com/)
-2. **Convert images to WebP** format for ~30% smaller files
-3. **Host locally** (copy CDN scripts to `/assets/js/vendor/`) for offline use
-4. **Enable GZIP** compression on your hosting server
-5. **Set cache headers** for static assets (images, CSS, JS)
+- **Display / Headings**: Playfair Display
+- **Navigation / Labels**: Montserrat
+- **Body Text**: Inter
 
 ---
 
@@ -220,16 +204,12 @@ Update `sitemap.xml` with your actual domain:
 | Firefox 88+ | ✅ Full |
 | Safari 14+ | ✅ Full |
 | Edge 90+ | ✅ Full |
-| Mobile Chrome | ✅ Full |
-| Mobile Safari | ✅ Full |
+| Mobile Chrome / Safari | ✅ Full |
+
+`supabase-js` v2 and ES modules require a modern evergreen browser (no IE11 support).
 
 ---
 
 ## License
 
-This website was built exclusively for **Ishmar Expo Limited**.
-All design, code, and content © 2026 Ishmar Expo Limited. All rights reserved.
-
----
-
-*Built with precision and passion for Ishmar Expo Limited.*
+Built exclusively for **Ishmar Expo Limited**. © 2026 Ishmar Expo Limited. All rights reserved.

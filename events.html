@@ -601,23 +601,27 @@
   <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
   <script src="assets/js/main.js"></script>
   <script src="assets/js/animations.js"></script>
+  <script type="module" src="assets/js/dynamic-events.js"></script>
   <script>
-    // Events filter combining status + category
+    // Events filter combining status + category. Cards are queried fresh
+    // inside applyFilters() (not captured once at load) because
+    // assets/js/dynamic-events.js replaces the grid's contents
+    // asynchronously after this script has already run.
     (function() {
       const statusTabs = document.querySelectorAll('.events-filter-tab');
       const catTabs    = document.querySelectorAll('.filter-tab');
-      const cards      = document.querySelectorAll('.event-card');
 
       let currentStatus = 'all';
       let currentCat    = 'all';
 
       function applyFilters() {
-        cards.forEach(card => {
+        document.querySelectorAll('.event-card').forEach(card => {
           const statusMatch = currentStatus === 'all' || card.dataset.status === currentStatus;
           const catMatch    = currentCat === 'all' || card.dataset.category === currentCat;
           card.style.display = (statusMatch && catMatch) ? '' : 'none';
         });
       }
+      window.addEventListener('ishmar:events-rendered', applyFilters);
 
       statusTabs.forEach(tab => {
         tab.addEventListener('click', () => {

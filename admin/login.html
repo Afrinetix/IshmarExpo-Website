@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Admin Login | Ishmar Expo</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/admin.css" />
+</head>
+<body>
+
+  <div class="auth-screen">
+    <div class="auth-card">
+      <div class="auth-logo">ISHMAR<span>EXPO</span></div>
+      <div class="auth-sub">Admin Console</div>
+
+      <div id="denied-banner" style="display:none;" class="field">
+        <div class="badge badge-danger" style="width:100%; justify-content:center; padding:10px; font-size:11px;">
+          <i class="fas fa-lock"></i> Your account isn't approved for admin access yet.
+        </div>
+      </div>
+
+      <div class="auth-toggle">
+        <button type="button" id="tab-signin" class="active">Sign In</button>
+        <button type="button" id="tab-signup">Create Account</button>
+      </div>
+
+      <!-- SIGN IN -->
+      <form id="signin-form">
+        <div class="field">
+          <label for="signin-email">Email</label>
+          <input type="email" id="signin-email" required autocomplete="username" />
+        </div>
+        <div class="field">
+          <label for="signin-password">Password</label>
+          <input type="password" id="signin-password" required autocomplete="current-password" />
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">
+          <span class="btn-label">Sign In</span>
+        </button>
+      </form>
+
+      <!-- CREATE ACCOUNT -->
+      <form id="signup-form" style="display:none;">
+        <div class="field">
+          <label for="signup-name">Full Name</label>
+          <input type="text" id="signup-name" required autocomplete="name" />
+        </div>
+        <div class="field">
+          <label for="signup-email">Email</label>
+          <input type="email" id="signup-email" required autocomplete="username" />
+        </div>
+        <div class="field">
+          <label for="signup-password">Password</label>
+          <input type="password" id="signup-password" required minlength="8" autocomplete="new-password" />
+          <div class="field-hint">Minimum 8 characters.</div>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">
+          <span class="btn-label">Create Account</span>
+        </button>
+        <p class="field-hint" style="margin-top:14px; text-align:center;">
+          New accounts start with no access. A Super Admin must approve you from the Users page before you can sign in.
+        </p>
+      </form>
+
+      <div id="auth-message" style="display:none; margin-top:18px;"></div>
+    </div>
+  </div>
+
+  <div id="toast-stack"></div>
+
+  <script type="module">
+    import { supabase } from '../supabase/client.js';
+    import { signIn, signUp, getSession, getCurrentUserProfile } from '../supabase/auth.js';
+    import { ADMIN_PANEL_ROLES } from '../supabase/config.js';
+    import { toast, toastError } from './js/dashboard-shell.js';
+
+    // If already signed in with valid access, skip straight to the dashboard.
+    (async () => {
+      const session = await getSession();
+      if (session) {
+        const profile = await getCurrentUserProfile();
+        if (profile && ADMIN_PANEL_ROLES.includes(profile.role)) {
+          window.location.href = 'dashboard.html';
+        }
+      }
+    })();
+
+    if (new URLSearchParams(window.location.search).get('denied') === '1') {
+      document.getElementById('denied-banner').style.display = 'block';
+    }
+
+    const tabSignin = document.getElementById('tab-signin');
+    const tabSignup = document.getElementById('tab-signup');
+    const signinForm = document.getElementById('signin-form');
+    const signupForm = document.getElementById('signup-form');
+
+    tabSignin.addEventListener('click', () => {
+      tabSignin.classList.add('active');
+      tabSignup.classList.remove('active');
+      signinForm.style.display = 'block';
+      signupForm.style.display = 'none';
+    });
+    tabSignup.addEventListener('click', () => {
+      tabSignup.classList.add('active');
+      tabSignin.classList.remove('active');
+      signupForm.style.display = 'block';
+      signinForm.style.display = 'none';
+    });
+
+    function setLoading(form, loading) {
+      const btn = form.querySelector('button[type="submit"]');
+      btn.disabled = loading;
+      btn.querySelector('.btn-label').innerHTML = loading
+        ? '<span class="spinner"></span>'
+        : (form === signinForm ? 'Sign In' : 'Create Account');
+    }
+
+    signinForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      setLoading(signinForm, true);
+      try {
+        await signIn(
+          document.getElementById('signin-email').value.trim(),
+          document.getElementById('signin-password').value
+        );
+        const profile = await getCurrentUserProfile();
+        if (!profile || !ADMIN_PANEL_ROLES.includes(profile.role)) {
+          await supabase.auth.signOut();
+          toast('Your account has no admin access yet. Ask a Super Admin to approve it.', 'error');
+          return;
+        }
+        window.location.href = 'dashboard.html';
+      } catch (err) {
+        toastError(err);
+      } finally {
+        setLoading(signinForm, false);
+      }
+    });
+
+    signupForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      setLoading(signupForm, true);
+      try {
+        await signUp(
+          document.getElementById('signup-email').value.trim(),
+          document.getElementById('signup-password').value,
+          document.getElementById('signup-name').value.trim()
+        );
+        signupForm.reset();
+        toast('Account created. Ask a Super Admin to approve your access, then sign in.', 'success');
+        tabSignin.click();
+      } catch (err) {
+        toastError(err);
+      } finally {
+        setLoading(signupForm, false);
+      }
+    });
+  </script>
+</body>
+</html>

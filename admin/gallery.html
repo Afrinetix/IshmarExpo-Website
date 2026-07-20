@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Gallery | Ishmar Expo Admin</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/admin.css" />
+  <style>
+    .gallery-grid-admin { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:16px; }
+    .gallery-card { border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; background:var(--surface); }
+    .gallery-card img { width:100%; aspect-ratio:4/3; object-fit:cover; }
+    .gallery-card-body { padding:10px 12px; }
+    .gallery-card-cat { font-family:var(--font-heading); font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--gold); margin-bottom:4px; }
+    .gallery-card-caption { font-size:12.5px; color:var(--gray); margin-bottom:8px; min-height:16px; }
+    .gallery-card-actions { display:flex; justify-content:space-between; align-items:center; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar-root"></aside>
+    <div class="main">
+      <header class="topbar" id="topbar-root"></header>
+      <div class="content">
+
+        <div class="panel" id="upload-panel">
+          <div class="panel-header"><div class="panel-title">Upload Photos</div></div>
+          <div class="panel-body">
+            <div class="form-grid">
+              <div class="field">
+                <label for="upload-category">Category</label>
+                <select id="upload-category">
+                  <option value="halal">Halal Expo</option>
+                  <option value="empowerment">Empowerment</option>
+                  <option value="networking">Networking</option>
+                  <option value="speakers">Speakers</option>
+                  <option value="certification">Certification</option>
+                </select>
+                <div class="field-hint">Matches the filter tabs on the public Gallery page.</div>
+              </div>
+              <div class="field">
+                <label for="upload-caption">Caption (applied to all files in this batch — optional)</label>
+                <input type="text" id="upload-caption" placeholder="Leave blank to edit captions individually later" />
+              </div>
+            </div>
+            <div class="file-drop" id="gallery-drop">
+              <i class="fas fa-cloud-arrow-up" style="font-size:24px; margin-bottom:8px; display:block;"></i>
+              <span id="gallery-drop-label">Click to choose one or more images (JPG/PNG/WebP/GIF, max 10MB each)</span>
+              <input type="file" id="gallery-file-input" accept="image/jpeg,image/png,image/webp,image/avif,image/gif" multiple />
+            </div>
+            <div id="upload-progress" style="margin-top:14px; display:none;">
+              <div class="field-hint" id="upload-progress-text"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Gallery</div>
+            <div id="category-filters" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+          </div>
+          <div class="panel-body">
+            <div class="gallery-grid-admin" id="gallery-grid">
+              <div class="state-msg"><span class="spinner"></span></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit modal -->
+  <div class="modal-overlay" id="edit-modal-overlay">
+    <div class="modal">
+      <div class="modal-title">Edit Image</div>
+      <form id="edit-form">
+        <input type="hidden" id="edit-id" />
+        <div class="field">
+          <label for="edit-category">Category</label>
+          <select id="edit-category">
+            <option value="halal">Halal Expo</option>
+            <option value="empowerment">Empowerment</option>
+            <option value="networking">Networking</option>
+            <option value="speakers">Speakers</option>
+            <option value="certification">Certification</option>
+          </select>
+        </div>
+        <div class="field"><label for="edit-caption">Caption</label><input type="text" id="edit-caption" /></div>
+        <div class="checkbox-field field"><input type="checkbox" id="edit-featured" /><label for="edit-featured">Featured</label></div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" id="edit-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast-stack"></div>
+
+  <script type="module">
+    import { initShell, toast, toastError, confirmModal, escapeHtml, safeUrl } from './js/dashboard-shell.js';
+    import { getAllGalleryForAdmin, bulkCreateGalleryImages, updateGalleryImage, deleteGalleryImage } from '../supabase/gallery.js';
+    import { uploadFiles, deleteFile, pathFromPublicUrl, BUCKETS } from '../supabase/storage.js';
+    import { hasPermission } from '../supabase/auth.js';
+
+    const profile = await initShell({ active: 'gallery.html', title: 'Gallery' });
+    if (!profile) throw new Error('redirecting');
+
+    const canWrite = hasPermission('gallery', 'write', profile.role);
+    const canDelete = hasPermission('gallery', 'delete', profile.role);
+    if (!canWrite) document.getElementById('upload-panel').style.display = 'none';
+
+    let images = [];
+    let activeCategory = 'all';
+
+    const dropZone = document.getElementById('gallery-drop');
+    const fileInput = document.getElementById('gallery-file-input');
+    dropZone.addEventListener('click', () => fileInput.click());
+    ['dragover', 'dragleave', 'drop'].forEach((evt) => {
+      dropZone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        dropZone.classList.toggle('dragover', evt === 'dragover');
+      });
+    });
+    dropZone.addEventListener('drop', (e) => handleFiles(e.dataTransfer.files));
+    fileInput.addEventListener('change', () => handleFiles(fileInput.files));
+
+    async function handleFiles(fileList) {
+      if (!fileList.length) return;
+      const progress = document.getElementById('upload-progress');
+      const progressText = document.getElementById('upload-progress-text');
+      progress.style.display = 'block';
+      progressText.textContent = `Uploading ${fileList.length} file(s)…`;
+
+      try {
+        const results = await uploadFiles(BUCKETS.GALLERY, fileList);
+        const succeeded = results.filter((r) => !r.error);
+        const failed = results.filter((r) => r.error);
+
+        if (succeeded.length) {
+          const category = document.getElementById('upload-category').value.trim() || null;
+          const caption = document.getElementById('upload-caption').value.trim() || null;
+          await bulkCreateGalleryImages(succeeded.map((r) => ({
+            image_url: r.publicUrl,
+            category,
+            caption,
+            uploaded_by: profile.id,
+          })));
+        }
+        if (failed.length) {
+          toast(`${failed.length} file(s) failed: ${failed[0].error.message}`, 'error');
+        }
+        if (succeeded.length) toast(`${succeeded.length} image(s) uploaded.`);
+
+        fileInput.value = '';
+        progress.style.display = 'none';
+        await loadGallery();
+      } catch (err) {
+        progress.style.display = 'none';
+        toastError(err);
+      }
+    }
+
+    function renderCategoryFilters() {
+      const cats = ['all', ...new Set(images.map((i) => i.category).filter(Boolean))];
+      document.getElementById('category-filters').innerHTML = cats.map((c) => `
+        <button class="btn btn-sm ${c === activeCategory ? 'btn-primary' : 'btn-outline'}" data-cat="${escapeHtml(c)}">
+          ${c === 'all' ? 'All' : escapeHtml(c)}
+        </button>`).join('');
+      document.querySelectorAll('[data-cat]').forEach((btn) => btn.addEventListener('click', () => {
+        activeCategory = btn.dataset.cat;
+        renderGrid();
+        renderCategoryFilters();
+      }));
+    }
+
+    function renderGrid() {
+      const grid = document.getElementById('gallery-grid');
+      const visible = activeCategory === 'all' ? images : images.filter((i) => i.category === activeCategory);
+      if (!visible.length) {
+        grid.innerHTML = '<div class="state-msg"><i class="fas fa-images"></i>No images in this category yet.</div>';
+        return;
+      }
+      grid.innerHTML = visible.map((img) => `
+        <div class="gallery-card">
+          <img src="${escapeHtml(safeUrl(img.image_url))}" alt="${escapeHtml(img.caption)}" loading="lazy" />
+          <div class="gallery-card-body">
+            <div class="gallery-card-cat">${escapeHtml(img.category) || 'Uncategorized'}${img.featured ? ' · <span style="color:var(--gold)">Featured</span>' : ''}</div>
+            <div class="gallery-card-caption">${escapeHtml(img.caption)}</div>
+            <div class="gallery-card-actions">
+              ${canWrite ? `<button class="btn btn-outline btn-sm" data-edit="${img.id}"><i class="fas fa-pen"></i></button>` : '<span></span>'}
+              ${canDelete ? `<button class="btn btn-danger btn-sm" data-delete="${img.id}"><i class="fas fa-trash"></i></button>` : ''}
+            </div>
+          </div>
+        </div>`).join('');
+
+      grid.querySelectorAll('[data-edit]').forEach((btn) => btn.addEventListener('click', () => openEdit(images.find((i) => i.id === btn.dataset.edit))));
+      grid.querySelectorAll('[data-delete]').forEach((btn) => btn.addEventListener('click', () => handleDelete(images.find((i) => i.id === btn.dataset.delete))));
+    }
+
+    const editOverlay = document.getElementById('edit-modal-overlay');
+    function openEdit(img) {
+      document.getElementById('edit-id').value = img.id;
+      document.getElementById('edit-category').value = img.category || '';
+      document.getElementById('edit-caption').value = img.caption || '';
+      document.getElementById('edit-featured').checked = !!img.featured;
+      editOverlay.classList.add('open');
+    }
+    document.getElementById('edit-cancel').addEventListener('click', () => editOverlay.classList.remove('open'));
+    editOverlay.addEventListener('click', (e) => { if (e.target === editOverlay) editOverlay.classList.remove('open'); });
+
+    document.getElementById('edit-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        await updateGalleryImage(document.getElementById('edit-id').value, {
+          category: document.getElementById('edit-category').value.trim() || null,
+          caption: document.getElementById('edit-caption').value.trim() || null,
+          featured: document.getElementById('edit-featured').checked,
+        });
+        editOverlay.classList.remove('open');
+        toast('Image updated.');
+        await loadGallery();
+      } catch (err) {
+        toastError(err);
+      }
+    });
+
+    async function handleDelete(img) {
+      const ok = await confirmModal({ title: 'Delete this image?', text: 'This removes it from the gallery and from storage permanently.' });
+      if (!ok) return;
+      try {
+        await deleteGalleryImage(img.id);
+        const path = pathFromPublicUrl(BUCKETS.GALLERY, img.image_url);
+        if (path) await deleteFile(BUCKETS.GALLERY, path).catch(() => {});
+        toast('Image deleted.');
+        await loadGallery();
+      } catch (err) {
+        toastError(err);
+      }
+    }
+
+    async function loadGallery() {
+      try {
+        images = await getAllGalleryForAdmin();
+        renderCategoryFilters();
+        renderGrid();
+      } catch (err) {
+        document.getElementById('gallery-grid').innerHTML = '<div class="state-msg">Could not load gallery.</div>';
+        toastError(err);
+      }
+    }
+
+    loadGallery();
+  </script>
+</body>
+</html>

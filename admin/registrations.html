@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Registrations | Ishmar Expo Admin</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/admin.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar-root"></aside>
+    <div class="main">
+      <header class="topbar" id="topbar-root"></header>
+      <div class="content">
+        <div class="panel">
+          <div class="panel-body state-msg">
+            <i class="fas fa-ticket"></i>
+            Registration management (search, filter by event, CSV/Excel export, print attendee list) ships in Phase 2,
+            alongside the public registration form on events.html.<br />
+            The <code>registrations</code> table and RLS policies already exist — see README.md → Roadmap for the plan.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="toast-stack"></div>
+  <script type="module">
+    import { initShell } from './js/dashboard-shell.js';
+    import { ROLES } from '../supabase/config.js';
+    const profile = await initShell({ active: 'registrations.html', title: 'Registrations', allowedRoles: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.EVENT_MANAGER] });
+    if (!profile) throw new Error('redirecting');
+  </script>
+</body>
+</html>

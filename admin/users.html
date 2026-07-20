@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Users | Ishmar Expo Admin</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/admin.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar-root"></aside>
+    <div class="main">
+      <header class="topbar" id="topbar-root"></header>
+      <div class="content">
+
+        <fieldset style="border:1px dashed var(--border); border-radius:8px; padding:12px 16px; font-size:12.5px; color:var(--gray); margin-bottom:18px;">
+          <i class="fas fa-circle-info"></i>
+          New accounts appear here with the <strong>pending</strong> role after signing up on the login page and have no admin access until promoted.
+          Only Super Admins can change roles.
+        </fieldset>
+
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">All Admin Users</div></div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th></th></tr></thead>
+              <tbody id="users-tbody"><tr><td colspan="5" class="state-msg"><span class="spinner"></span></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-stack"></div>
+
+  <script type="module">
+    import { initShell, toast, toastError, confirmModal, escapeHtml } from './js/dashboard-shell.js';
+    import { supabase } from '../supabase/client.js';
+    import { ROLES } from '../supabase/config.js';
+
+    const profile = await initShell({ active: 'users.html', title: 'Users', allowedRoles: [ROLES.SUPER_ADMIN, ROLES.ADMIN] });
+    if (!profile) throw new Error('redirecting');
+
+    const isSuperAdmin = profile.role === ROLES.SUPER_ADMIN;
+    const ROLE_OPTIONS = Object.values(ROLES);
+
+    function fmtDate(iso) {
+      return new Date(iso).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    async function loadUsers() {
+      const tbody = document.getElementById('users-tbody');
+      try {
+        const { data: users, error } = await supabase.from('users').select('id, full_name, email, role, created_at').order('created_at', { ascending: false });
+        if (error) throw error;
+
+        tbody.innerHTML = users.map((u) => `
+          <tr>
+            <td><strong>${escapeHtml(u.full_name) || '—'}</strong>${u.id === profile.id ? ' <span class="badge badge-gray">You</span>' : ''}</td>
+            <td>${escapeHtml(u.email)}</td>
+            <td>
+              ${isSuperAdmin && u.id !== profile.id
+                ? `<select class="role-select" data-id="${u.id}" style="border:1.5px solid var(--border); border-radius:6px; padding:6px 8px; font-size:12.5px;">
+                    ${ROLE_OPTIONS.map((r) => `<option value="${r}" ${r === u.role ? 'selected' : ''}>${r.replace('_', ' ')}</option>`).join('')}
+                  </select>`
+                : `<span class="badge ${u.role === 'pending' ? 'badge-danger' : 'badge-gold'}">${u.role.replace('_', ' ')}</span>`}
+            </td>
+            <td>${fmtDate(u.created_at)}</td>
+            <td>
+              ${isSuperAdmin && u.id !== profile.id ? `<button class="btn btn-danger btn-icon" data-remove="${u.id}" title="Remove access"><i class="fas fa-user-slash"></i></button>` : ''}
+            </td>
+          </tr>`).join('');
+
+        tbody.querySelectorAll('.role-select').forEach((select) => {
+          select.addEventListener('change', async () => {
+            try {
+              const { error } = await supabase.from('users').update({ role: select.value }).eq('id', select.dataset.id);
+              if (error) throw error;
+              toast('Role updated.');
+            } catch (err) {
+              toastError(err);
+              await loadUsers();
+            }
+          });
+        });
+
+        tbody.querySelectorAll('[data-remove]').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const user = users.find((u) => u.id === btn.dataset.remove);
+            const ok = await confirmModal({
+              title: 'Revoke admin access?',
+              text: `${user.email} will be set back to "pending" and lose all admin access. Their login itself is not deleted.`,
+              confirmLabel: 'Revoke Access',
+            });
+            if (!ok) return;
+            try {
+              const { error } = await supabase.from('users').update({ role: 'pending' }).eq('id', user.id);
+              if (error) throw error;
+              toast('Access revoked.');
+              await loadUsers();
+            } catch (err) {
+              toastError(err);
+            }
+          });
+        });
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="5" class="state-msg">Could not load users.</td></tr>';
+        toastError(err);
+      }
+    }
+
+    loadUsers();
+  </script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Media &amp; Press | Ishmar Expo Admin</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/admin.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar-root"></aside>
+    <div class="main">
+      <header class="topbar" id="topbar-root"></header>
+      <div class="content">
+        <div class="panel">
+          <div class="panel-body state-msg">
+            <i class="fas fa-newspaper"></i>
+            Press-mention management (title, image, external link) ships in Phase 2.<br />
+            The <code>media</code> table and storage bucket already exist — see README.md → Roadmap for the plan.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="toast-stack"></div>
+  <script type="module">
+    import { initShell } from './js/dashboard-shell.js';
+    const profile = await initShell({ active: 'media.html', title: 'Media & Press' });
+    if (!profile) throw new Error('redirecting');
+  </script>
+</body>
+</html>

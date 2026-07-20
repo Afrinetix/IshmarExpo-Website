@@ -366,15 +366,21 @@
   const closeBtn  = document.querySelector('.img-lightbox-close');
   if (!lightbox || !imgEl) return;
 
-  let items  = [];
   let current = 0;
 
+  // Queried live (not captured once) so gallery items rendered later by
+  // assets/js/dynamic-gallery.js are clickable too, via delegation below.
+  function liveItems() {
+    return Array.from(document.querySelectorAll('.gallery-item[data-src]'));
+  }
+
   function openImg(index) {
-    current = index;
-    const item = items[index];
-    if (!item) return;
-    imgEl.src = item.src;
-    imgEl.alt = item.alt || '';
+    const items = liveItems();
+    if (!items.length) return;
+    current = ((index % items.length) + items.length) % items.length;
+    const item = items[current];
+    imgEl.src = item.dataset.src;
+    imgEl.alt = item.dataset.alt || '';
     lightbox.classList.add('open');
     document.body.style.overflow = 'hidden';
   }
@@ -384,10 +390,11 @@
     document.body.style.overflow = '';
   }
 
-  // Gather gallery items
-  document.querySelectorAll('.gallery-item[data-src]').forEach((el, i) => {
-    items.push({ src: el.dataset.src, alt: el.dataset.alt || '' });
-    el.addEventListener('click', () => openImg(i));
+  // Delegated click handler — works for gallery items present now or added later.
+  document.addEventListener('click', (e) => {
+    const item = e.target.closest('.gallery-item[data-src]');
+    if (!item) return;
+    openImg(liveItems().indexOf(item));
   });
 
   if (closeBtn) closeBtn.addEventListener('click', closeImg);
@@ -397,8 +404,8 @@
   document.addEventListener('keydown', (e) => {
     if (!lightbox.classList.contains('open')) return;
     if (e.key === 'Escape')      closeImg();
-    if (e.key === 'ArrowRight')  openImg((current + 1) % items.length);
-    if (e.key === 'ArrowLeft')   openImg((current - 1 + items.length) % items.length);
+    if (e.key === 'ArrowRight')  openImg(current + 1);
+    if (e.key === 'ArrowLeft')   openImg(current - 1);
   });
 })();
 
@@ -406,34 +413,43 @@
    GALLERY FILTER
 ══════════════════════════════════════════ */
 (function initGalleryFilter() {
-  const tabs  = document.querySelectorAll('.filter-tab');
-  const items = document.querySelectorAll('.gallery-item[data-category]');
-  if (!tabs.length || !items.length) return;
+  const tabs = document.querySelectorAll('.filter-tab');
+  if (!tabs.length) return;
+
+  // Items are queried live inside applyFilter() (not captured once at load)
+  // so this keeps working once assets/js/dynamic-gallery.js replaces the
+  // masonry grid's contents asynchronously.
+  function applyFilter(category) {
+    document.querySelectorAll('.gallery-item[data-category]').forEach(item => {
+      const match = category === 'all' || item.dataset.category === category;
+      item.style.transition = 'opacity 0.4s, transform 0.4s';
+
+      if (match) {
+        item.style.opacity   = '1';
+        item.style.transform = 'scale(1)';
+        item.style.display   = '';
+      } else {
+        item.style.opacity   = '0';
+        item.style.transform = 'scale(0.9)';
+        setTimeout(() => {
+          if (item.style.opacity === '0') item.style.display = 'none';
+        }, 400);
+      }
+    });
+  }
 
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
       tabs.forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
-
-      const category = tab.dataset.filter;
-
-      items.forEach(item => {
-        const match = category === 'all' || item.dataset.category === category;
-        item.style.transition = 'opacity 0.4s, transform 0.4s';
-
-        if (match) {
-          item.style.opacity   = '1';
-          item.style.transform = 'scale(1)';
-          item.style.display   = '';
-        } else {
-          item.style.opacity   = '0';
-          item.style.transform = 'scale(0.9)';
-          setTimeout(() => {
-            if (item.style.opacity === '0') item.style.display = 'none';
-          }, 400);
-        }
-      });
+      applyFilter(tab.dataset.filter);
     });
+  });
+
+  // Re-apply whichever tab is active once dynamic gallery items arrive.
+  window.addEventListener('ishmar:gallery-rendered', () => {
+    const active = document.querySelector('.filter-tab.active');
+    applyFilter(active ? active.dataset.filter : 'all');
   });
 })();
 

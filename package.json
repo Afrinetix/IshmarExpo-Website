@@ -1,0 +1,22 @@
+{
+  "name": "ishmar-expo",
+  "version": "2.0.0",
+  "description": "Ishmar Halal Traders Expo Ltd — website and Supabase-powered admin console",
+  "private": true,
+  "scripts": {
+    "dev": "npx serve . -p 8080",
+    "dev:python": "python -m http.server 8080"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "ishmar-expo",
+    "halal-expo",
+    "supabase",
+    "static-site"
+  ],
+  "license": "UNLICENSED",
+  "author": "Ishmar Expo Limited",
+  "dependencies": {}
+}

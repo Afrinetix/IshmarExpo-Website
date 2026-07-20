@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Settings | Ishmar Expo Admin</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/admin.css" />
+  <style>
+    .stat-row { display:grid; grid-template-columns: 2fr 1fr 1fr auto; gap:10px; align-items:end; margin-bottom:12px; }
+    .stat-row .field { margin-bottom:0; }
+    fieldset.readonly-note { border:1px dashed var(--border); border-radius:8px; padding:12px 16px; font-size:12.5px; color:var(--gray); margin-bottom:18px; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar-root"></aside>
+    <div class="main">
+      <header class="topbar" id="topbar-root"></header>
+      <div class="content" id="settings-content">
+        <div class="state-msg"><span class="spinner"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-stack"></div>
+
+  <script type="module">
+    import { initShell, toast, toastError } from './js/dashboard-shell.js';
+    import { getAllSettings, updateSetting } from '../supabase/settings.js';
+    import { ROLES } from '../supabase/config.js';
+
+    const profile = await initShell({ active: 'settings.html', title: 'Settings' });
+    if (!profile) throw new Error('redirecting');
+
+    const canWrite = [ROLES.SUPER_ADMIN, ROLES.ADMIN].includes(profile.role);
+    const content = document.getElementById('settings-content');
+
+    const settings = await getAllSettings().catch((err) => { toastError(err); return {}; });
+    const hero = settings.hero || {};
+    const stats = settings.stats || [];
+    const contact = settings.contact || {};
+    const social = settings.social_links || {};
+    const footer = settings.footer || {};
+    const seo = settings.seo || {};
+
+    content.innerHTML = `
+      ${!canWrite ? '<fieldset class="readonly-note"><i class="fas fa-eye"></i> Your role can view settings but not save changes.</fieldset>' : ''}
+
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Homepage Hero</div></div>
+        <div class="panel-body">
+          <form id="form-hero">
+            <div class="field"><label>Eyebrow Text</label><input type="text" id="hero-eyebrow" value="${hero.eyebrow || ''}" /></div>
+            <div class="form-grid">
+              <div class="field"><label>Title — Line 1</label><input type="text" id="hero-line1" value="${hero.title_line1 || ''}" /></div>
+              <div class="field"><label>Title — Line 2</label><input type="text" id="hero-line2" value="${hero.title_line2 || ''}" /></div>
+            </div>
+            <div class="field"><label>Subtitle</label><textarea id="hero-subtitle" rows="3">${hero.subtitle || ''}</textarea></div>
+            ${canWrite ? '<button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-check"></i> Save Hero</button>' : ''}
+          </form>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Homepage Statistics</div>
+          ${canWrite ? '<button type="button" class="btn btn-outline btn-sm" id="add-stat-row"><i class="fas fa-plus"></i> Add Stat</button>' : ''}
+        </div>
+        <div class="panel-body">
+          <form id="form-stats">
+            <div id="stats-rows"></div>
+            ${canWrite ? '<button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-check"></i> Save Statistics</button>' : ''}
+          </form>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Contact Information</div></div>
+        <div class="panel-body">
+          <form id="form-contact">
+            <div class="form-grid">
+              <div class="field"><label>Primary Phone</label><input type="text" id="contact-phone1" value="${contact.phone_primary || ''}" /></div>
+              <div class="field"><label>Secondary Phone</label><input type="text" id="contact-phone2" value="${contact.phone_secondary || ''}" /></div>
+              <div class="field"><label>General Email</label><input type="email" id="contact-email1" value="${contact.email_general || ''}" /></div>
+              <div class="field"><label>Events Email</label><input type="email" id="contact-email2" value="${contact.email_events || ''}" /></div>
+              <div class="field"><label>WhatsApp Number (digits only, e.g. 254721639164)</label><input type="text" id="contact-whatsapp" value="${contact.whatsapp || ''}" /></div>
+              <div class="field"><label>Address</label><input type="text" id="contact-address" value="${contact.address || ''}" /></div>
+            </div>
+            <div class="field"><label>Google Maps Embed URL</label><input type="text" id="contact-maps" value="${contact.google_maps_embed || ''}" /></div>
+            ${canWrite ? '<button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-check"></i> Save Contact Info</button>' : ''}
+          </form>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Social Links</div></div>
+        <div class="panel-body">
+          <form id="form-social">
+            <div class="form-grid">
+              <div class="field"><label>Instagram</label><input type="url" id="social-instagram" value="${social.instagram || ''}" /></div>
+              <div class="field"><label>Facebook</label><input type="url" id="social-facebook" value="${social.facebook || ''}" /></div>
+              <div class="field"><label>YouTube</label><input type="url" id="social-youtube" value="${social.youtube || ''}" /></div>
+              <div class="field"><label>LinkedIn</label><input type="url" id="social-linkedin" value="${social.linkedin || ''}" /></div>
+              <div class="field"><label>TikTok</label><input type="url" id="social-tiktok" value="${social.tiktok || ''}" /></div>
+            </div>
+            ${canWrite ? '<button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-check"></i> Save Social Links</button>' : ''}
+          </form>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Footer</div></div>
+        <div class="panel-body">
+          <form id="form-footer">
+            <div class="field"><label>Description</label><textarea id="footer-description" rows="3">${footer.description || ''}</textarea></div>
+            <div class="field"><label>Copyright Line</label><input type="text" id="footer-copyright" value="${footer.copyright || ''}" /></div>
+            ${canWrite ? '<button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-check"></i> Save Footer</button>' : ''}
+          </form>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">SEO &amp; Analytics</div></div>
+        <div class="panel-body">
+          <form id="form-seo">
+            <div class="field"><label>Default Page Title</label><input type="text" id="seo-title" value="${seo.default_title || ''}" /></div>
+            <div class="field"><label>Default Meta Description</label><textarea id="seo-description" rows="2">${seo.default_description || ''}</textarea></div>
+            <div class="form-grid">
+              <div class="field"><label>Default OpenGraph Image URL</label><input type="url" id="seo-og-image" value="${seo.og_image || ''}" /></div>
+              <div class="field"><label>Twitter Handle</label><input type="text" id="seo-twitter" value="${seo.twitter_handle || ''}" placeholder="@ishmarexpo" /></div>
+              <div class="field"><label>Google Analytics ID</label><input type="text" id="seo-ga" value="${seo.google_analytics_id || ''}" placeholder="G-XXXXXXXXXX" /></div>
+              <div class="field"><label>Google Search Console Verification</label><input type="text" id="seo-gsc" value="${seo.google_site_verification || ''}" /></div>
+            </div>
+            ${canWrite ? '<button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-check"></i> Save SEO Settings</button>' : ''}
+          </form>
+        </div>
+      </div>
+    `;
+
+    if (canWrite) {
+      document.getElementById('form-hero').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await save('hero', {
+          eyebrow: val('hero-eyebrow'), title_line1: val('hero-line1'), title_line2: val('hero-line2'), subtitle: val('hero-subtitle'),
+        });
+      });
+
+      document.getElementById('form-contact').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await save('contact', {
+          phone_primary: val('contact-phone1'), phone_secondary: val('contact-phone2'),
+          email_general: val('contact-email1'), email_events: val('contact-email2'),
+          whatsapp: val('contact-whatsapp'), address: val('contact-address'), google_maps_embed: val('contact-maps'),
+        });
+      });
+
+      document.getElementById('form-social').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await save('social_links', {
+          instagram: val('social-instagram'), facebook: val('social-facebook'), youtube: val('social-youtube'),
+          linkedin: val('social-linkedin'), tiktok: val('social-tiktok'),
+        });
+      });
+
+      document.getElementById('form-footer').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await save('footer', { description: val('footer-description'), copyright: val('footer-copyright') });
+      });
+
+      document.getElementById('form-seo').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await save('seo', {
+          default_title: val('seo-title'), default_description: val('seo-description'),
+          og_image: val('seo-og-image'), twitter_handle: val('seo-twitter'),
+          google_analytics_id: val('seo-ga'), google_site_verification: val('seo-gsc'),
+        });
+      });
+
+      renderStatsRows(stats.length ? stats : [{ label: '', value: 0, suffix: '+' }]);
+      document.getElementById('add-stat-row').addEventListener('click', () => {
+        renderStatsRows([...readStatsRows(), { label: '', value: 0, suffix: '+' }]);
+      });
+      document.getElementById('form-stats').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await save('stats', readStatsRows());
+      });
+    }
+
+    function val(id) { return document.getElementById(id).value.trim(); }
+
+    function renderStatsRows(rows) {
+      document.getElementById('stats-rows').innerHTML = rows.map((s, i) => `
+        <div class="stat-row" data-row="${i}">
+          <div class="field"><label>Label</label><input type="text" class="stat-label" value="${s.label || ''}" /></div>
+          <div class="field"><label>Value</label><input type="number" class="stat-value" value="${s.value ?? 0}" /></div>
+          <div class="field"><label>Suffix</label><input type="text" class="stat-suffix" value="${s.suffix || ''}" /></div>
+          <button type="button" class="btn btn-danger btn-icon" data-remove-stat="${i}"><i class="fas fa-trash"></i></button>
+        </div>`).join('');
+      document.querySelectorAll('[data-remove-stat]').forEach((btn) => btn.addEventListener('click', () => {
+        const rows = readStatsRows();
+        rows.splice(Number(btn.dataset.removeStat), 1);
+        renderStatsRows(rows);
+      }));
+    }
+    function readStatsRows() {
+      return [...document.querySelectorAll('.stat-row')].map((row) => ({
+        label: row.querySelector('.stat-label').value.trim(),
+        value: Number(row.querySelector('.stat-value').value) || 0,
+        suffix: row.querySelector('.stat-suffix').value.trim(),
+      }));
+    }
+
+    async function save(key, value) {
+      try {
+        await updateSetting(key, value, profile.id);
+        toast('Settings saved.');
+      } catch (err) {
+        toastError(err);
+      }
+    }
+  </script>
+</body>
+</html>
