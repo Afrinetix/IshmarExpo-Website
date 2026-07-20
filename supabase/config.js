@@ -9,8 +9,8 @@
  * Replace the two values below with your project's values from
  * Supabase Dashboard → Project Settings → API, then see README.md.
  */
-export const SUPABASE_URL = 'https://YOUR-PROJECT-REF.supabase.co';
-export const SUPABASE_ANON_KEY = 'YOUR-PUBLIC-ANON-KEY';
+export const SUPABASE_URL = 'https://aycznyfebwczrcjaurfc.supabase.co';
+export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5Y3pueWZlYndjenJjamF1cmZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1MzcyNzIsImV4cCI6MjEwMDExMzI3Mn0.b37D_Lecl97St7yCKGbQ1VeYMys2wPruT-OIHDv5g3c';
 
 /** Storage bucket ids — must match supabase/storage-setup.sql exactly. */
 export const BUCKETS = {

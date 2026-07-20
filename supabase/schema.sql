@@ -2,6 +2,11 @@
 -- ISHMAR EXPO — Supabase schema (migration 1 of 3: tables, types, triggers)
 -- Run this FIRST in the Supabase SQL editor (or via `supabase db push`),
 -- then storage-setup.sql, then policies.sql.
+--
+-- This entire file is safe to run more than once — every statement either
+-- uses IF NOT EXISTS, replaces cleanly, or is wrapped to skip "already
+-- exists" errors, so re-running it after a partial failure (or just to be
+-- sure) won't error out on objects created by an earlier attempt.
 -- ============================================================================
 
 -- Needed for gen_random_uuid()
@@ -12,21 +17,28 @@ create extension if not exists "pgcrypto";
 -- ----------------------------------------------------------------------------
 -- 'pending' is the default for a brand-new signup — they have no admin access
 -- until a super_admin promotes them from the Users admin page.
-create type public.user_role as enum (
-  'pending',
-  'viewer',
-  'media_manager',
-  'event_manager',
-  'editor',
-  'admin',
-  'super_admin'
-);
+-- (Postgres has no CREATE TYPE IF NOT EXISTS, hence the DO block.)
+do $$
+begin
+  create type public.user_role as enum (
+    'pending',
+    'viewer',
+    'media_manager',
+    'event_manager',
+    'editor',
+    'admin',
+    'super_admin'
+  );
+exception
+  when duplicate_object then null;
+end
+$$;
 
 -- ----------------------------------------------------------------------------
 -- users — 1:1 with auth.users. Never insert into this manually from the
 -- client; it is populated by the handle_new_user() trigger below.
 -- ----------------------------------------------------------------------------
-create table public.users (
+create table if not exists public.users (
   id         uuid primary key references auth.users (id) on delete cascade,
   full_name  text,
   email      text not null,
@@ -40,7 +52,7 @@ comment on table public.users is 'Admin-panel identities. Role gates every RLS p
 -- ----------------------------------------------------------------------------
 -- events
 -- ----------------------------------------------------------------------------
-create table public.events (
+create table if not exists public.events (
   id                     uuid primary key default gen_random_uuid(),
   title                  text not null,
   slug                   text unique,
@@ -65,13 +77,13 @@ create table public.events (
   constraint events_dates_valid check (end_date >= start_date)
 );
 
-create index events_published_start_idx on public.events (published, start_date);
-create index events_featured_idx on public.events (featured) where featured = true;
+create index if not exists events_published_start_idx on public.events (published, start_date);
+create index if not exists events_featured_idx on public.events (featured) where featured = true;
 
 -- ----------------------------------------------------------------------------
 -- gallery
 -- ----------------------------------------------------------------------------
-create table public.gallery (
+create table if not exists public.gallery (
   id          uuid primary key default gen_random_uuid(),
   image_url   text not null,
   category    text,
@@ -82,13 +94,13 @@ create table public.gallery (
   updated_at  timestamptz not null default now()
 );
 
-create index gallery_category_idx on public.gallery (category);
-create index gallery_featured_idx on public.gallery (featured) where featured = true;
+create index if not exists gallery_category_idx on public.gallery (category);
+create index if not exists gallery_featured_idx on public.gallery (featured) where featured = true;
 
 -- ----------------------------------------------------------------------------
 -- videos
 -- ----------------------------------------------------------------------------
-create table public.videos (
+create table if not exists public.videos (
   id             uuid primary key default gen_random_uuid(),
   title          text not null,
   youtube_url    text,
@@ -105,7 +117,7 @@ create table public.videos (
 -- registrations — public INSERT only (event registration form). Reading and
 -- managing is admin-only (see policies.sql).
 -- ----------------------------------------------------------------------------
-create table public.registrations (
+create table if not exists public.registrations (
   id             uuid primary key default gen_random_uuid(),
   full_name      text not null,
   company        text,
@@ -121,13 +133,13 @@ create table public.registrations (
   constraint registrations_email_format check (email ~* '^[^@\s]+@[^@\s]+\.[^@\s]+$')
 );
 
-create index registrations_event_idx on public.registrations (event_id);
-create index registrations_email_idx on public.registrations (email);
+create index if not exists registrations_event_idx on public.registrations (event_id);
+create index if not exists registrations_email_idx on public.registrations (email);
 
 -- ----------------------------------------------------------------------------
 -- sponsors / partners
 -- ----------------------------------------------------------------------------
-create table public.sponsors (
+create table if not exists public.sponsors (
   id           uuid primary key default gen_random_uuid(),
   company_name text not null,
   logo         text,
@@ -138,7 +150,7 @@ create table public.sponsors (
   updated_at   timestamptz not null default now()
 );
 
-create table public.partners (
+create table if not exists public.partners (
   id           uuid primary key default gen_random_uuid(),
   company_name text not null,
   logo         text,
@@ -152,7 +164,7 @@ create table public.partners (
 -- ----------------------------------------------------------------------------
 -- testimonials
 -- ----------------------------------------------------------------------------
-create table public.testimonials (
+create table if not exists public.testimonials (
   id           uuid primary key default gen_random_uuid(),
   client_name  text not null,
   company      text,
@@ -167,7 +179,7 @@ create table public.testimonials (
 -- ----------------------------------------------------------------------------
 -- media (press mentions)
 -- ----------------------------------------------------------------------------
-create table public.media (
+create table if not exists public.media (
   id         uuid primary key default gen_random_uuid(),
   title      text not null,
   image      text,
@@ -180,7 +192,7 @@ create table public.media (
 -- ----------------------------------------------------------------------------
 -- contact_messages — public INSERT only (contact form).
 -- ----------------------------------------------------------------------------
-create table public.contact_messages (
+create table if not exists public.contact_messages (
   id         uuid primary key default gen_random_uuid(),
   full_name  text not null,
   email      text not null,
@@ -194,14 +206,14 @@ create table public.contact_messages (
   constraint contact_messages_email_format check (email ~* '^[^@\s]+@[^@\s]+\.[^@\s]+$')
 );
 
-create index contact_messages_status_idx on public.contact_messages (status);
+create index if not exists contact_messages_status_idx on public.contact_messages (status);
 
 -- ----------------------------------------------------------------------------
 -- settings — flexible key/value store for everything editable site-wide.
 -- The admin Settings page reads/writes known keys; the public pages read
 -- them to render hero text, stats, contact info, social links, footer, SEO.
 -- ----------------------------------------------------------------------------
-create table public.settings (
+create table if not exists public.settings (
   key        text primary key,
   value      jsonb not null default '{}'::jsonb,
   updated_at timestamptz not null default now(),
@@ -266,24 +278,34 @@ begin
 end;
 $$;
 
+drop trigger if exists set_updated_at on public.users;
 create trigger set_updated_at before update on public.users
   for each row execute function public.set_updated_at();
+drop trigger if exists set_updated_at on public.events;
 create trigger set_updated_at before update on public.events
   for each row execute function public.set_updated_at();
+drop trigger if exists set_updated_at on public.gallery;
 create trigger set_updated_at before update on public.gallery
   for each row execute function public.set_updated_at();
+drop trigger if exists set_updated_at on public.videos;
 create trigger set_updated_at before update on public.videos
   for each row execute function public.set_updated_at();
+drop trigger if exists set_updated_at on public.sponsors;
 create trigger set_updated_at before update on public.sponsors
   for each row execute function public.set_updated_at();
+drop trigger if exists set_updated_at on public.partners;
 create trigger set_updated_at before update on public.partners
   for each row execute function public.set_updated_at();
+drop trigger if exists set_updated_at on public.testimonials;
 create trigger set_updated_at before update on public.testimonials
   for each row execute function public.set_updated_at();
+drop trigger if exists set_updated_at on public.media;
 create trigger set_updated_at before update on public.media
   for each row execute function public.set_updated_at();
+drop trigger if exists set_updated_at on public.contact_messages;
 create trigger set_updated_at before update on public.contact_messages
   for each row execute function public.set_updated_at();
+drop trigger if exists set_updated_at on public.settings;
 create trigger set_updated_at before update on public.settings
   for each row execute function public.set_updated_at();
 
@@ -311,6 +333,7 @@ begin
 end;
 $$;
 
+drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();

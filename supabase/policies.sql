@@ -43,11 +43,13 @@ $$;
 -- ============================================================================
 alter table public.users enable row level security;
 
+drop policy if exists users_select_own on public.users;
 create policy users_select_own
   on public.users for select
   to authenticated
   using (id = auth.uid());
 
+drop policy if exists users_select_admin on public.users;
 create policy users_select_admin
   on public.users for select
   to authenticated
@@ -56,6 +58,7 @@ create policy users_select_admin
 -- Users may update their own profile, but cannot change their own role —
 -- the WITH CHECK re-reads the *current* stored role and requires it be
 -- unchanged unless the actor is a super_admin (see next policy).
+drop policy if exists users_update_own_profile on public.users;
 create policy users_update_own_profile
   on public.users for update
   to authenticated
@@ -65,12 +68,14 @@ create policy users_update_own_profile
     and role = (select u2.role from public.users u2 where u2.id = auth.uid())
   );
 
+drop policy if exists users_update_admin on public.users;
 create policy users_update_admin
   on public.users for update
   to authenticated
   using (public.has_role('super_admin'))
   with check (public.has_role('super_admin'));
 
+drop policy if exists users_delete_admin on public.users;
 create policy users_delete_admin
   on public.users for delete
   to authenticated
@@ -85,27 +90,32 @@ create policy users_delete_admin
 -- ============================================================================
 alter table public.events enable row level security;
 
+drop policy if exists events_public_read on public.events;
 create policy events_public_read
   on public.events for select
   to anon, authenticated
   using (published = true);
 
+drop policy if exists events_staff_read_all on public.events;
 create policy events_staff_read_all
   on public.events for select
   to authenticated
   using (public.has_role('super_admin', 'admin', 'editor', 'event_manager', 'media_manager', 'viewer'));
 
+drop policy if exists events_staff_write on public.events;
 create policy events_staff_write
   on public.events for insert
   to authenticated
   with check (public.has_role('super_admin', 'admin', 'editor', 'event_manager'));
 
+drop policy if exists events_staff_update on public.events;
 create policy events_staff_update
   on public.events for update
   to authenticated
   using (public.has_role('super_admin', 'admin', 'editor', 'event_manager'))
   with check (public.has_role('super_admin', 'admin', 'editor', 'event_manager'));
 
+drop policy if exists events_staff_delete on public.events;
 create policy events_staff_delete
   on public.events for delete
   to authenticated
@@ -116,22 +126,26 @@ create policy events_staff_delete
 -- ============================================================================
 alter table public.gallery enable row level security;
 
+drop policy if exists gallery_public_read on public.gallery;
 create policy gallery_public_read
   on public.gallery for select
   to anon, authenticated
   using (true);
 
+drop policy if exists gallery_staff_write on public.gallery;
 create policy gallery_staff_write
   on public.gallery for insert
   to authenticated
   with check (public.has_role('super_admin', 'admin', 'editor', 'media_manager'));
 
+drop policy if exists gallery_staff_update on public.gallery;
 create policy gallery_staff_update
   on public.gallery for update
   to authenticated
   using (public.has_role('super_admin', 'admin', 'editor', 'media_manager'))
   with check (public.has_role('super_admin', 'admin', 'editor', 'media_manager'));
 
+drop policy if exists gallery_staff_delete on public.gallery;
 create policy gallery_staff_delete
   on public.gallery for delete
   to authenticated
@@ -142,22 +156,26 @@ create policy gallery_staff_delete
 -- ============================================================================
 alter table public.videos enable row level security;
 
+drop policy if exists videos_public_read on public.videos;
 create policy videos_public_read
   on public.videos for select
   to anon, authenticated
   using (true);
 
+drop policy if exists videos_staff_write on public.videos;
 create policy videos_staff_write
   on public.videos for insert
   to authenticated
   with check (public.has_role('super_admin', 'admin', 'editor', 'media_manager'));
 
+drop policy if exists videos_staff_update on public.videos;
 create policy videos_staff_update
   on public.videos for update
   to authenticated
   using (public.has_role('super_admin', 'admin', 'editor', 'media_manager'))
   with check (public.has_role('super_admin', 'admin', 'editor', 'media_manager'));
 
+drop policy if exists videos_staff_delete on public.videos;
 create policy videos_staff_delete
   on public.videos for delete
   to authenticated
@@ -172,24 +190,40 @@ alter table public.partners enable row level security;
 alter table public.testimonials enable row level security;
 alter table public.media enable row level security;
 
+drop policy if exists sponsors_public_read on public.sponsors;
 create policy sponsors_public_read on public.sponsors for select to anon, authenticated using (true);
+drop policy if exists sponsors_staff_write on public.sponsors;
 create policy sponsors_staff_write on public.sponsors for insert to authenticated with check (public.is_full_admin() or public.has_role('editor'));
+drop policy if exists sponsors_staff_update on public.sponsors;
 create policy sponsors_staff_update on public.sponsors for update to authenticated using (public.is_full_admin() or public.has_role('editor')) with check (public.is_full_admin() or public.has_role('editor'));
+drop policy if exists sponsors_staff_delete on public.sponsors;
 create policy sponsors_staff_delete on public.sponsors for delete to authenticated using (public.is_full_admin());
 
+drop policy if exists partners_public_read on public.partners;
 create policy partners_public_read on public.partners for select to anon, authenticated using (true);
+drop policy if exists partners_staff_write on public.partners;
 create policy partners_staff_write on public.partners for insert to authenticated with check (public.is_full_admin() or public.has_role('editor'));
+drop policy if exists partners_staff_update on public.partners;
 create policy partners_staff_update on public.partners for update to authenticated using (public.is_full_admin() or public.has_role('editor')) with check (public.is_full_admin() or public.has_role('editor'));
+drop policy if exists partners_staff_delete on public.partners;
 create policy partners_staff_delete on public.partners for delete to authenticated using (public.is_full_admin());
 
+drop policy if exists testimonials_public_read on public.testimonials;
 create policy testimonials_public_read on public.testimonials for select to anon, authenticated using (true);
+drop policy if exists testimonials_staff_write on public.testimonials;
 create policy testimonials_staff_write on public.testimonials for insert to authenticated with check (public.is_full_admin() or public.has_role('editor'));
+drop policy if exists testimonials_staff_update on public.testimonials;
 create policy testimonials_staff_update on public.testimonials for update to authenticated using (public.is_full_admin() or public.has_role('editor')) with check (public.is_full_admin() or public.has_role('editor'));
+drop policy if exists testimonials_staff_delete on public.testimonials;
 create policy testimonials_staff_delete on public.testimonials for delete to authenticated using (public.is_full_admin());
 
+drop policy if exists media_public_read on public.media;
 create policy media_public_read on public.media for select to anon, authenticated using (true);
+drop policy if exists media_staff_write on public.media;
 create policy media_staff_write on public.media for insert to authenticated with check (public.is_full_admin() or public.has_role('editor'));
+drop policy if exists media_staff_update on public.media;
 create policy media_staff_update on public.media for update to authenticated using (public.is_full_admin() or public.has_role('editor')) with check (public.is_full_admin() or public.has_role('editor'));
+drop policy if exists media_staff_delete on public.media;
 create policy media_staff_delete on public.media for delete to authenticated using (public.is_full_admin());
 
 -- ============================================================================
@@ -200,22 +234,26 @@ create policy media_staff_delete on public.media for delete to authenticated usi
 -- ============================================================================
 alter table public.registrations enable row level security;
 
+drop policy if exists registrations_public_insert on public.registrations;
 create policy registrations_public_insert
   on public.registrations for insert
   to anon, authenticated
   with check (payment_status = 'pending');
 
+drop policy if exists registrations_staff_read on public.registrations;
 create policy registrations_staff_read
   on public.registrations for select
   to authenticated
   using (public.has_role('super_admin', 'admin', 'event_manager'));
 
+drop policy if exists registrations_staff_update on public.registrations;
 create policy registrations_staff_update
   on public.registrations for update
   to authenticated
   using (public.has_role('super_admin', 'admin', 'event_manager'))
   with check (public.has_role('super_admin', 'admin', 'event_manager'));
 
+drop policy if exists registrations_staff_delete on public.registrations;
 create policy registrations_staff_delete
   on public.registrations for delete
   to authenticated
@@ -227,22 +265,26 @@ create policy registrations_staff_delete
 -- ============================================================================
 alter table public.contact_messages enable row level security;
 
+drop policy if exists contact_messages_public_insert on public.contact_messages;
 create policy contact_messages_public_insert
   on public.contact_messages for insert
   to anon, authenticated
   with check (status = 'unread');
 
+drop policy if exists contact_messages_staff_read on public.contact_messages;
 create policy contact_messages_staff_read
   on public.contact_messages for select
   to authenticated
   using (public.is_full_admin());
 
+drop policy if exists contact_messages_staff_update on public.contact_messages;
 create policy contact_messages_staff_update
   on public.contact_messages for update
   to authenticated
   using (public.is_full_admin())
   with check (public.is_full_admin());
 
+drop policy if exists contact_messages_staff_delete on public.contact_messages;
 create policy contact_messages_staff_delete
   on public.contact_messages for delete
   to authenticated
@@ -254,22 +296,26 @@ create policy contact_messages_staff_delete
 -- ============================================================================
 alter table public.settings enable row level security;
 
+drop policy if exists settings_public_read on public.settings;
 create policy settings_public_read
   on public.settings for select
   to anon, authenticated
   using (true);
 
+drop policy if exists settings_staff_write on public.settings;
 create policy settings_staff_write
   on public.settings for insert
   to authenticated
   with check (public.is_full_admin());
 
+drop policy if exists settings_staff_update on public.settings;
 create policy settings_staff_update
   on public.settings for update
   to authenticated
   using (public.is_full_admin())
   with check (public.is_full_admin());
 
+drop policy if exists settings_staff_delete on public.settings;
 create policy settings_staff_delete
   on public.settings for delete
   to authenticated
@@ -283,84 +329,106 @@ create policy settings_staff_delete
 -- file_size_limit / allowed_mime_types set in storage-setup.sql.
 -- ============================================================================
 
+drop policy if exists storage_public_read on storage.objects;
 create policy storage_public_read
   on storage.objects for select
   to anon, authenticated
   using (bucket_id in ('gallery','videos','documents','sponsors','partners','team','media'));
 
+drop policy if exists storage_gallery_write on storage.objects;
 create policy storage_gallery_write
   on storage.objects for insert to authenticated
   with check (bucket_id = 'gallery' and public.has_role('super_admin','admin','editor','media_manager'));
+drop policy if exists storage_gallery_update on storage.objects;
 create policy storage_gallery_update
   on storage.objects for update to authenticated
   using (bucket_id = 'gallery' and public.has_role('super_admin','admin','editor','media_manager'))
   with check (bucket_id = 'gallery' and public.has_role('super_admin','admin','editor','media_manager'));
+drop policy if exists storage_gallery_delete on storage.objects;
 create policy storage_gallery_delete
   on storage.objects for delete to authenticated
   using (bucket_id = 'gallery' and public.has_role('super_admin','admin','media_manager'));
 
+drop policy if exists storage_videos_write on storage.objects;
 create policy storage_videos_write
   on storage.objects for insert to authenticated
   with check (bucket_id = 'videos' and public.has_role('super_admin','admin','editor','media_manager'));
+drop policy if exists storage_videos_update on storage.objects;
 create policy storage_videos_update
   on storage.objects for update to authenticated
   using (bucket_id = 'videos' and public.has_role('super_admin','admin','editor','media_manager'))
   with check (bucket_id = 'videos' and public.has_role('super_admin','admin','editor','media_manager'));
+drop policy if exists storage_videos_delete on storage.objects;
 create policy storage_videos_delete
   on storage.objects for delete to authenticated
   using (bucket_id = 'videos' and public.has_role('super_admin','admin','media_manager'));
 
+drop policy if exists storage_documents_write on storage.objects;
 create policy storage_documents_write
   on storage.objects for insert to authenticated
   with check (bucket_id = 'documents' and public.has_role('super_admin','admin','editor','event_manager'));
+drop policy if exists storage_documents_update on storage.objects;
 create policy storage_documents_update
   on storage.objects for update to authenticated
   using (bucket_id = 'documents' and public.has_role('super_admin','admin','editor','event_manager'))
   with check (bucket_id = 'documents' and public.has_role('super_admin','admin','editor','event_manager'));
+drop policy if exists storage_documents_delete on storage.objects;
 create policy storage_documents_delete
   on storage.objects for delete to authenticated
   using (bucket_id = 'documents' and public.has_role('super_admin','admin','event_manager'));
 
+drop policy if exists storage_sponsors_write on storage.objects;
 create policy storage_sponsors_write
   on storage.objects for insert to authenticated
   with check (bucket_id = 'sponsors' and public.is_full_admin());
+drop policy if exists storage_sponsors_update on storage.objects;
 create policy storage_sponsors_update
   on storage.objects for update to authenticated
   using (bucket_id = 'sponsors' and public.is_full_admin())
   with check (bucket_id = 'sponsors' and public.is_full_admin());
+drop policy if exists storage_sponsors_delete on storage.objects;
 create policy storage_sponsors_delete
   on storage.objects for delete to authenticated
   using (bucket_id = 'sponsors' and public.is_full_admin());
 
+drop policy if exists storage_partners_write on storage.objects;
 create policy storage_partners_write
   on storage.objects for insert to authenticated
   with check (bucket_id = 'partners' and public.is_full_admin());
+drop policy if exists storage_partners_update on storage.objects;
 create policy storage_partners_update
   on storage.objects for update to authenticated
   using (bucket_id = 'partners' and public.is_full_admin())
   with check (bucket_id = 'partners' and public.is_full_admin());
+drop policy if exists storage_partners_delete on storage.objects;
 create policy storage_partners_delete
   on storage.objects for delete to authenticated
   using (bucket_id = 'partners' and public.is_full_admin());
 
+drop policy if exists storage_team_write on storage.objects;
 create policy storage_team_write
   on storage.objects for insert to authenticated
   with check (bucket_id = 'team' and public.is_full_admin());
+drop policy if exists storage_team_update on storage.objects;
 create policy storage_team_update
   on storage.objects for update to authenticated
   using (bucket_id = 'team' and public.is_full_admin())
   with check (bucket_id = 'team' and public.is_full_admin());
+drop policy if exists storage_team_delete on storage.objects;
 create policy storage_team_delete
   on storage.objects for delete to authenticated
   using (bucket_id = 'team' and public.is_full_admin());
 
+drop policy if exists storage_media_write on storage.objects;
 create policy storage_media_write
   on storage.objects for insert to authenticated
   with check (bucket_id = 'media' and public.is_full_admin());
+drop policy if exists storage_media_update on storage.objects;
 create policy storage_media_update
   on storage.objects for update to authenticated
   using (bucket_id = 'media' and public.is_full_admin())
   with check (bucket_id = 'media' and public.is_full_admin());
+drop policy if exists storage_media_delete on storage.objects;
 create policy storage_media_delete
   on storage.objects for delete to authenticated
   using (bucket_id = 'media' and public.is_full_admin());
