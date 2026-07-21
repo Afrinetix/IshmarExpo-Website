@@ -153,45 +153,6 @@ input, textarea, select { font-family: inherit; }
 }
 
 /* ══════════════════════════════════════════════
-   CUSTOM CURSOR
-══════════════════════════════════════════════ */
-.cursor-dot {
-  position: fixed;
-  width: 8px;
-  height: 8px;
-  background: var(--gold);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 9990;
-  transform: translate(-50%, -50%);
-  transition: transform 0.1s, opacity 0.3s;
-  mix-blend-mode: difference;
-}
-
-.cursor-ring {
-  position: fixed;
-  width: 36px;
-  height: 36px;
-  border: 1.5px solid rgba(201,162,39,0.6);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 9989;
-  transform: translate(-50%, -50%);
-  transition: transform 0.15s var(--ease-smooth), width 0.3s, height 0.3s, opacity 0.3s;
-}
-
-.cursor-ring.hovered {
-  width: 56px;
-  height: 56px;
-  border-color: var(--gold);
-  background: rgba(201,162,39,0.06);
-}
-
-@media (pointer: coarse) {
-  .cursor-dot, .cursor-ring { display: none; }
-}
-
-/* ══════════════════════════════════════════════
    NAVIGATION
 ══════════════════════════════════════════════ */
 #navbar {
