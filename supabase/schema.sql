@@ -236,20 +236,21 @@ insert into public.settings (key, value) values
     jsonb_build_object('label', 'Businesses Halal Certified', 'value', 50, 'suffix', '+')
   )),
   ('contact', jsonb_build_object(
-    'phone_primary', '+254 721 639 164',
-    'phone_secondary', '+254 729 627 162',
-    'email_general', 'info@ishmarexpo.com',
-    'email_events', 'events@ishmarexpo.com',
-    'whatsapp', '254721639164',
-    'address', 'Malindi / Nairobi, Kenya',
+    'phone_primary', '+254 715 685 550',
+    'phone_secondary', '+254 715 685 550',
+    'email_general', 'ishmarhalaltradersexpoltd@gmail.com',
+    'email_events', 'ishmarhalaltradersexpoltd@gmail.com',
+    'whatsapp', '254715685550',
+    'address', 'Parklands, Nairobi (Head Office) / GPO, Mombasa (Branch), Kenya',
     'google_maps_embed', ''
   )),
   ('social_links', jsonb_build_object(
-    'instagram', 'https://www.instagram.com/ishmarexpo',
+    'instagram', 'https://www.instagram.com/ishmar_expo_limited?utm_source=qr',
     'facebook', 'https://www.facebook.com/ishmarexpo',
     'youtube', 'https://www.youtube.com/@ishmarexpo',
     'linkedin', 'https://www.linkedin.com/company/ishmarexpo',
-    'tiktok', 'https://www.tiktok.com/@ishmarexpo'
+    'tiktok', 'https://www.tiktok.com/@ishmar_expo_limited?_r=1&_t=ZS-98Du5CrZv0i',
+    'snapchat', 'https://snapchat.com/t/e4RPcgCK'
   )),
   ('footer', jsonb_build_object(
     'description', 'Africa''s leading Halal exhibition and empowerment company — connecting African SMEs, youth, and women entrepreneurs to the global Halal economy since 2023.',

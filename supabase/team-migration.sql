@@ -84,9 +84,9 @@ create policy team_members_staff_delete
 insert into public.team_members (full_name, role, photo, social_platform, social_url, display_order)
 select v.full_name, v.role, v.photo, v.social_platform, v.social_url, v.display_order
 from (values
-  ('Aisha Omar Said', 'Founder & Director', 'assets/images/WhatsApp Image 2025-06-03 at 00.11.42_6ece1c3b.jpg', 'whatsapp', 'https://wa.me/254721639164', 1),
-  ('Hamisi Ramadhani Kiwaka', 'CEO & Managing Director', 'assets/images/WhatsApp Image 2025-06-03 at 00.11.42_98827fb1.jpg', 'whatsapp', 'https://wa.me/254729627162', 2),
+  ('Aisha Omar Said', 'Founder & Director', 'assets/images/WhatsApp Image 2025-06-03 at 00.11.42_6ece1c3b.jpg', 'whatsapp', 'https://wa.me/254715685550', 1),
+  ('Hamisi Ramadhani Kiwaka', 'CEO & Managing Director', 'assets/images/WhatsApp Image 2025-06-03 at 00.11.42_98827fb1.jpg', 'whatsapp', 'https://wa.me/254715685550', 2),
   ('Asma Omar Said', 'Financial Controller', 'assets/images/WhatsApp Image 2026-02-03 at 16.45.01.jpg', 'email', 'contact.html', 3),
-  ('Halima Liyayi', 'Social Media Manager', null, 'instagram', 'https://www.instagram.com/ishmarexpo', 4)
+  ('Halima Liyayi', 'Social Media Manager', null, 'instagram', 'https://www.instagram.com/ishmar_expo_limited?utm_source=qr', 4)
 ) as v(full_name, role, photo, social_platform, social_url, display_order)
 where not exists (select 1 from public.team_members);
