@@ -1,0 +1,15 @@
+{
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "ishmarexpo.com"
+        }
+      ],
+      "destination": "https://www.ishmarexpo.com/$1",
+      "permanent": true
+    }
+  ]
+}
