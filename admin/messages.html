@@ -10,6 +10,37 @@
   <link rel="icon" type="image/png" sizes="16x16" href="../assets/images/favicon-16x16.png" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="stylesheet" href="css/admin.css" />
+  <style>
+    .msg-toolbar { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; }
+    .msg-toolbar .field { margin-bottom:0; }
+    .msg-toolbar .field.grow { flex:1; min-width:220px; }
+    .msg-tabs { display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
+    .msg-tab {
+      font-family:var(--font-heading, inherit); font-size:12px; font-weight:600;
+      padding:8px 16px; border-radius:100px; border:1.5px solid var(--border);
+      background:transparent; color:var(--gray); cursor:pointer; transition:all 0.2s;
+    }
+    .msg-tab.active { background:var(--gold); border-color:var(--gold); color:#fff; }
+    .msg-list { display:flex; flex-direction:column; gap:10px; }
+    .msg-row {
+      display:flex; align-items:flex-start; gap:14px; padding:16px 18px;
+      border:1px solid var(--border); border-radius:var(--radius); cursor:pointer;
+      transition:border-color 0.2s, background 0.2s; background:var(--surface);
+    }
+    .msg-row:hover { border-color:var(--gold); }
+    .msg-row.unread { background:var(--gold-muted); }
+    .msg-row-dot { width:9px; height:9px; border-radius:50%; margin-top:6px; flex-shrink:0; background:var(--gold); }
+    .msg-row.unread .msg-row-dot { background:var(--gold); }
+    .msg-row:not(.unread) .msg-row-dot { background:transparent; }
+    .msg-row-main { flex:1; min-width:0; }
+    .msg-row-top { display:flex; justify-content:space-between; gap:12px; margin-bottom:4px; }
+    .msg-row-name { font-weight:700; color:var(--ink); font-size:14px; }
+    .msg-row-date { font-size:11.5px; color:var(--gray); white-space:nowrap; }
+    .msg-row-subject { font-size:13px; color:var(--ink); margin-bottom:2px; }
+    .msg-row-preview { font-size:12.5px; color:var(--gray); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .msg-view-body { white-space:pre-wrap; line-height:1.7; font-size:14px; color:var(--ink); background:var(--bg-alt); border-radius:8px; padding:16px; margin:16px 0; }
+    .msg-view-meta { font-size:13px; color:var(--gray); line-height:1.8; }
+  </style>
 </head>
 <body>
   <div class="app-shell">
@@ -17,23 +48,186 @@
     <div class="main">
       <header class="topbar" id="topbar-root"></header>
       <div class="content">
+
         <div class="panel">
-          <div class="panel-body state-msg">
-            <i class="fas fa-envelope"></i>
-            Contact-enquiry inbox (unread/read/archive, search, reply-by-email) ships in Phase 2,
-            alongside wiring contact.html's form to the <code>contact_messages</code> table.<br />
-            The table and RLS policies already exist — see README.md → Roadmap for the plan.
+          <div class="panel-header"><div class="panel-title">Contact Messages</div></div>
+          <div class="panel-body">
+            <div class="msg-tabs" id="msg-tabs">
+              <button class="msg-tab active" data-status="unread">Unread</button>
+              <button class="msg-tab" data-status="read">Read</button>
+              <button class="msg-tab" data-status="archived">Archived</button>
+              <button class="msg-tab" data-status="">All</button>
+            </div>
+            <div class="msg-toolbar" style="margin-bottom:20px;">
+              <div class="field grow">
+                <label for="msg-search">Search</label>
+                <input type="text" id="msg-search" placeholder="Name, email, subject, or message…" />
+              </div>
+            </div>
+            <div class="msg-list" id="msg-list">
+              <div class="state-msg"><span class="spinner"></span></div>
+            </div>
           </div>
         </div>
+
       </div>
     </div>
   </div>
+
+  <!-- View message modal -->
+  <div class="modal-overlay" id="msg-view-overlay">
+    <div class="modal" style="max-width:560px;">
+      <div class="modal-title" id="msg-view-subject"></div>
+      <div class="msg-view-meta" id="msg-view-meta"></div>
+      <div class="msg-view-body" id="msg-view-body"></div>
+      <div class="modal-actions" style="justify-content:space-between;">
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-outline btn-sm" id="msg-view-reply"><i class="fas fa-reply"></i> Reply by Email</button>
+          <button class="btn btn-outline btn-sm" id="msg-view-archive-toggle"></button>
+        </div>
+        <button class="btn btn-danger btn-sm" id="msg-view-delete"><i class="fas fa-trash"></i> Delete</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast-stack"></div>
+
   <script type="module">
-    import { initShell } from './js/dashboard-shell.js';
+    import { initShell, toast, toastError, confirmModal, escapeHtml } from './js/dashboard-shell.js';
+    import { getAllMessagesForAdmin, updateMessageStatus, deleteMessage } from '../supabase/messages.js';
     import { ROLES } from '../supabase/config.js';
+
     const profile = await initShell({ active: 'messages.html', title: 'Messages', allowedRoles: [ROLES.SUPER_ADMIN, ROLES.ADMIN] });
     if (!profile) throw new Error('redirecting');
+
+    let messages = [];
+    let activeStatus = 'unread';
+    let searchDebounce = null;
+
+    function fmtDate(iso) {
+      return new Date(iso).toLocaleString('en-KE', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    document.getElementById('msg-tabs').addEventListener('click', (e) => {
+      const btn = e.target.closest('.msg-tab');
+      if (!btn) return;
+      document.querySelectorAll('.msg-tab').forEach((t) => t.classList.remove('active'));
+      btn.classList.add('active');
+      activeStatus = btn.dataset.status;
+      loadMessages();
+    });
+
+    document.getElementById('msg-search').addEventListener('input', () => {
+      clearTimeout(searchDebounce);
+      searchDebounce = setTimeout(loadMessages, 350);
+    });
+
+    function renderRow(m) {
+      const preview = m.message.length > 90 ? `${m.message.slice(0, 90)}…` : m.message;
+      return `
+        <div class="msg-row ${m.status === 'unread' ? 'unread' : ''}" data-id="${m.id}">
+          <div class="msg-row-dot"></div>
+          <div class="msg-row-main">
+            <div class="msg-row-top">
+              <span class="msg-row-name">${escapeHtml(m.full_name)} <span style="font-weight:400; color:var(--gray); font-size:12.5px;">— ${escapeHtml(m.email)}</span></span>
+              <span class="msg-row-date">${fmtDate(m.created_at)}</span>
+            </div>
+            <div class="msg-row-subject">${escapeHtml(m.subject) || '(No subject)'}</div>
+            <div class="msg-row-preview">${escapeHtml(preview)}</div>
+          </div>
+          ${m.status === 'archived' ? '<span class="badge badge-gray">Archived</span>' : ''}
+        </div>`;
+    }
+
+    function renderList() {
+      const list = document.getElementById('msg-list');
+      if (!messages.length) {
+        list.innerHTML = '<div class="state-msg"><i class="fas fa-inbox"></i>No messages here.</div>';
+        return;
+      }
+      list.innerHTML = messages.map(renderRow).join('');
+      list.querySelectorAll('.msg-row').forEach((row) => {
+        row.addEventListener('click', () => openMessage(messages.find((m) => m.id === row.dataset.id)));
+      });
+    }
+
+    async function loadMessages() {
+      const list = document.getElementById('msg-list');
+      try {
+        messages = await getAllMessagesForAdmin({
+          status: activeStatus || undefined,
+          search: document.getElementById('msg-search').value.trim() || undefined,
+        });
+        renderList();
+      } catch (err) {
+        list.innerHTML = '<div class="state-msg">Could not load messages.</div>';
+        toastError(err);
+      }
+    }
+
+    const viewOverlay = document.getElementById('msg-view-overlay');
+    let viewingMessage = null;
+
+    async function openMessage(msg) {
+      viewingMessage = msg;
+      document.getElementById('msg-view-subject').textContent = msg.subject || '(No subject)';
+      document.getElementById('msg-view-meta').innerHTML = `
+        <strong>${escapeHtml(msg.full_name)}</strong> · ${escapeHtml(msg.email)}${msg.phone ? ` · ${escapeHtml(msg.phone)}` : ''}<br>
+        ${fmtDate(msg.created_at)}`;
+      document.getElementById('msg-view-body').textContent = msg.message;
+      document.getElementById('msg-view-reply').onclick = () => {
+        const subject = encodeURIComponent(`Re: ${msg.subject || 'Your enquiry to Ishmar Expo'}`);
+        window.location.href = `mailto:${msg.email}?subject=${subject}`;
+      };
+      const archiveBtn = document.getElementById('msg-view-archive-toggle');
+      archiveBtn.innerHTML = msg.status === 'archived'
+        ? '<i class="fas fa-box-open"></i> Unarchive'
+        : '<i class="fas fa-box-archive"></i> Archive';
+      archiveBtn.onclick = async () => {
+        try {
+          await updateMessageStatus(msg.id, msg.status === 'archived' ? 'read' : 'archived');
+          viewOverlay.classList.remove('open');
+          toast(msg.status === 'archived' ? 'Message unarchived.' : 'Message archived.');
+          await loadMessages();
+        } catch (err) {
+          toastError(err);
+        }
+      };
+      document.getElementById('msg-view-delete').onclick = async () => {
+        const ok = await confirmModal({
+          title: 'Delete this message?',
+          text: `The message from ${msg.full_name} will be permanently removed. This can't be undone.`,
+        });
+        if (!ok) return;
+        try {
+          await deleteMessage(msg.id);
+          viewOverlay.classList.remove('open');
+          toast('Message deleted.');
+          await loadMessages();
+        } catch (err) {
+          toastError(err);
+        }
+      };
+
+      viewOverlay.classList.add('open');
+
+      // Mark as read the moment it's opened, if it was unread — mirrors a
+      // normal email inbox and needs no extra click from the admin.
+      if (msg.status === 'unread') {
+        try {
+          await updateMessageStatus(msg.id, 'read');
+          msg.status = 'read';
+          const row = document.querySelector(`.msg-row[data-id="${msg.id}"]`);
+          row?.classList.remove('unread');
+        } catch (err) {
+          console.error('[messages] Could not mark as read:', err);
+        }
+      }
+    }
+
+    viewOverlay.addEventListener('click', (e) => { if (e.target === viewOverlay) viewOverlay.classList.remove('open'); });
+
+    loadMessages();
   </script>
 </body>
 </html>

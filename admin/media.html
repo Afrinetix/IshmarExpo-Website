@@ -17,21 +17,206 @@
     <div class="main">
       <header class="topbar" id="topbar-root"></header>
       <div class="content">
-        <div class="panel">
-          <div class="panel-body state-msg">
-            <i class="fas fa-newspaper"></i>
-            Press-mention management (title, image, external link) ships in Phase 2.<br />
-            The <code>media</code> table and storage bucket already exist — see README.md → Roadmap for the plan.
+
+        <div class="panel" id="media-form-panel" style="display:none;">
+          <div class="panel-header">
+            <div class="panel-title" id="media-form-title">New Press Mention</div>
+            <button class="btn btn-ghost btn-sm" id="media-form-close"><i class="fas fa-xmark"></i> Close</button>
+          </div>
+          <div class="panel-body">
+            <form id="media-form">
+              <input type="hidden" id="media-id" />
+              <div class="field">
+                <label for="media-title">Title *</label>
+                <input type="text" id="media-title" placeholder="e.g. Daily Nation: Ishmar Halal Traders Expo Draws 10,000+ Attendees" required />
+              </div>
+
+              <div class="field">
+                <label for="media-image-file">Image</label>
+                <div class="file-drop" id="media-image-drop">
+                  <i class="fas fa-image" style="font-size:22px; margin-bottom:8px; display:block;"></i>
+                  <span id="media-image-label">Click to choose an image (JPG/PNG/WebP, max 10MB)</span>
+                  <input type="file" id="media-image-file" accept="image/jpeg,image/png,image/webp" />
+                </div>
+                <img id="media-image-preview" style="display:none; margin-top:12px; max-height:140px; border-radius:8px;" />
+              </div>
+
+              <div class="field">
+                <label for="media-link">External Link</label>
+                <input type="url" id="media-link" placeholder="https://... link to the original article/coverage" />
+              </div>
+
+              <div class="modal-actions" style="justify-content:flex-start;">
+                <button type="submit" class="btn btn-primary" id="media-save-btn"><i class="fas fa-check"></i> Save Press Mention</button>
+                <button type="button" class="btn btn-ghost" id="media-form-cancel">Cancel</button>
+              </div>
+            </form>
           </div>
         </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">All Press Mentions</div>
+            <button class="btn btn-primary btn-sm" id="new-media-btn"><i class="fas fa-plus"></i> New Press Mention</button>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr><th></th><th>Title</th><th>Link</th><th></th></tr>
+              </thead>
+              <tbody id="media-tbody">
+                <tr><td colspan="4" class="state-msg"><span class="spinner"></span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
+
   <div id="toast-stack"></div>
+
   <script type="module">
-    import { initShell } from './js/dashboard-shell.js';
+    import { initShell, toast, toastError, confirmModal, escapeHtml, safeUrl } from './js/dashboard-shell.js';
+    import { getAllMediaForAdmin, createMedia, updateMedia, deleteMedia } from '../supabase/media.js';
+    import { uploadFile, deleteFile, pathFromPublicUrl, BUCKETS } from '../supabase/storage.js';
+    import { hasPermission } from '../supabase/auth.js';
+
     const profile = await initShell({ active: 'media.html', title: 'Media & Press' });
     if (!profile) throw new Error('redirecting');
+
+    const canWrite = hasPermission('media', 'write', profile.role);
+    const canDelete = hasPermission('media', 'delete', profile.role);
+    if (!canWrite) document.getElementById('new-media-btn').style.display = 'none';
+
+    const panel = document.getElementById('media-form-panel');
+    const form = document.getElementById('media-form');
+    let pendingImageFile = null;
+    let mediaItems = [];
+
+    function openForm(item = null) {
+      form.reset();
+      pendingImageFile = null;
+      document.getElementById('media-image-preview').style.display = 'none';
+      document.getElementById('media-image-label').textContent = 'Click to choose an image (JPG/PNG/WebP, max 10MB)';
+      document.getElementById('media-id').value = item?.id || '';
+      document.getElementById('media-form-title').textContent = item ? 'Edit Press Mention' : 'New Press Mention';
+      document.getElementById('media-title').value = item?.title || '';
+      document.getElementById('media-link').value = item?.link || '';
+      if (item?.image) {
+        const preview = document.getElementById('media-image-preview');
+        preview.src = item.image;
+        preview.style.display = 'block';
+      }
+      panel.style.display = 'block';
+      panel.scrollIntoView({ behavior: 'smooth' });
+    }
+    function closeForm() {
+      panel.style.display = 'none';
+      form.reset();
+    }
+
+    document.getElementById('new-media-btn').addEventListener('click', () => openForm());
+    document.getElementById('media-form-close').addEventListener('click', closeForm);
+    document.getElementById('media-form-cancel').addEventListener('click', closeForm);
+
+    const dropZone = document.getElementById('media-image-drop');
+    const fileInput = document.getElementById('media-image-file');
+    dropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      pendingImageFile = file;
+      document.getElementById('media-image-label').textContent = file.name;
+      const preview = document.getElementById('media-image-preview');
+      preview.src = URL.createObjectURL(file);
+      preview.style.display = 'block';
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const saveBtn = document.getElementById('media-save-btn');
+      saveBtn.disabled = true;
+      try {
+        const id = document.getElementById('media-id').value || null;
+        const existing = id ? mediaItems.find((m) => m.id === id) : null;
+
+        let imageUrl = existing?.image || null;
+        if (pendingImageFile) {
+          const { publicUrl } = await uploadFile(BUCKETS.MEDIA, pendingImageFile, { folder: 'media' });
+          imageUrl = publicUrl;
+        }
+
+        const payload = {
+          title: document.getElementById('media-title').value.trim(),
+          image: imageUrl,
+          link: document.getElementById('media-link').value.trim() || null,
+        };
+
+        if (id) {
+          await updateMedia(id, payload);
+          toast('Press mention updated.');
+        } else {
+          await createMedia({ ...payload, created_by: profile.id });
+          toast('Press mention created.');
+        }
+        closeForm();
+        await loadMedia();
+      } catch (err) {
+        toastError(err);
+      } finally {
+        saveBtn.disabled = false;
+      }
+    });
+
+    async function handleDelete(item) {
+      const ok = await confirmModal({
+        title: 'Delete this press mention?',
+        text: `"${item.title}" will be permanently removed. This can't be undone.`,
+      });
+      if (!ok) return;
+      try {
+        await deleteMedia(item.id);
+        if (item.image) {
+          const path = pathFromPublicUrl(BUCKETS.MEDIA, item.image);
+          if (path) await deleteFile(BUCKETS.MEDIA, path).catch(() => {});
+        }
+        toast('Press mention deleted.');
+        await loadMedia();
+      } catch (err) {
+        toastError(err);
+      }
+    }
+
+    async function loadMedia() {
+      const tbody = document.getElementById('media-tbody');
+      try {
+        mediaItems = await getAllMediaForAdmin();
+        if (!mediaItems.length) {
+          tbody.innerHTML = '<tr><td colspan="4" class="state-msg"><i class="fas fa-newspaper"></i>No press mentions yet — add your first one.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = mediaItems.map((m) => `
+          <tr>
+            <td>${m.image ? `<img src="${escapeHtml(safeUrl(m.image))}" class="table-thumb" alt="" />` : ''}</td>
+            <td><strong>${escapeHtml(m.title)}</strong></td>
+            <td>${m.link && safeUrl(m.link) ? `<a href="${escapeHtml(safeUrl(m.link))}" target="_blank" rel="noopener">View <i class="fas fa-arrow-up-right-from-square"></i></a>` : '—'}</td>
+            <td class="table-actions">
+              ${canWrite ? `<button class="btn btn-outline btn-icon" data-edit="${m.id}" title="Edit"><i class="fas fa-pen"></i></button>` : ''}
+              ${canDelete ? `<button class="btn btn-danger btn-icon" data-delete="${m.id}" title="Delete"><i class="fas fa-trash"></i></button>` : ''}
+            </td>
+          </tr>`).join('');
+
+        tbody.querySelectorAll('[data-edit]').forEach((btn) => btn.addEventListener('click', () => openForm(mediaItems.find((m) => m.id === btn.dataset.edit))));
+        tbody.querySelectorAll('[data-delete]').forEach((btn) => btn.addEventListener('click', () => handleDelete(mediaItems.find((m) => m.id === btn.dataset.delete))));
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="4" class="state-msg">Could not load press mentions.</td></tr>';
+        toastError(err);
+      }
+    }
+
+    loadMedia();
   </script>
 </body>
 </html>

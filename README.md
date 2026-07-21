@@ -2,7 +2,7 @@
 
 **Africa's Leading Halal Exhibition & Empowerment Company**
 
-A premium, fully responsive multipage website (HTML5, CSS3, vanilla JavaScript ES6+, GSAP, Swiper.js, AOS) now backed by **Supabase** (PostgreSQL + Auth + Storage + Row Level Security) for content management — events, gallery, and site settings are editable from `/admin` without touching HTML or redeploying. See **Roadmap** below for what's still static and planned next.
+A premium, fully responsive multipage website (HTML5, CSS3, vanilla JavaScript ES6+, GSAP, Swiper.js, AOS) backed by **Supabase** (PostgreSQL + Auth + Storage + Row Level Security) for content management. Events, gallery, videos, sponsors, partners, testimonials, media/press mentions, event registrations, contact messages, and site settings are all editable from `/admin` without touching HTML or redeploying. See **Roadmap** below for the handful of pages/sections still intentionally static and why.
 
 ---
 
@@ -14,16 +14,19 @@ ishmar-expo/
 │   services.html, media.html, contact.html, insights.html
 ├── insights/                                             ← Blog articles (static)
 │
-├── admin/                          ← Admin console (Supabase-authenticated)
+├── admin/                          ← Admin console (Supabase-authenticated), all pages built
 │   ├── login.html                  ← Sign in / create account
 │   ├── dashboard.html              ← Overview + quick actions
-│   ├── events.html                 ← Full event CRUD (built)
-│   ├── gallery.html                ← Full gallery CRUD + bulk upload (built)
-│   ├── settings.html               ← Site-wide settings (built)
-│   ├── users.html                  ← Role management (built — Super Admin only writes)
-│   ├── videos.html, sponsors.html, partners.html,        ← Phase 2 (shell + nav
-│   │   testimonials.html, media.html, registrations.html,   built, CRUD not yet —
-│   │   messages.html                                        see Roadmap)
+│   ├── events.html                 ← Full event CRUD
+│   ├── gallery.html                ← Full gallery CRUD + bulk upload
+│   ├── videos.html                 ← YouTube/Instagram links, thumbnail, featured
+│   ├── sponsors.html, partners.html ← Logo upload, website, tier/description
+│   ├── testimonials.html           ← Photo, name, company, quote, featured
+│   ├── media.html                  ← Press mentions: title, image, link
+│   ├── registrations.html          ← Search/filter, CSV + Excel export, print
+│   ├── messages.html               ← Contact inbox: unread/read/archive, reply-by-email
+│   ├── users.html                  ← Role management (Super Admin only writes)
+│   ├── settings.html               ← Site-wide settings
 │   ├── css/admin.css               ← Admin design system
 │   └── js/dashboard-shell.js       ← Shared sidebar/topbar/auth-guard/toasts
 │
@@ -35,8 +38,9 @@ ishmar-expo/
 │   ├── client.js                   ← Shared Supabase client singleton
 │   ├── auth.js                     ← Sign in/up/out, session + role guards
 │   ├── storage.js                  ← Upload/delete/validate helper
-│   ├── events.js, gallery.js,      ← CRUD + public queries per content type
-│   │   settings.js
+│   └── events.js, gallery.js, videos.js, sponsors.js,   ← CRUD + public queries,
+│       partners.js, testimonials.js, media.js,             one module per content type
+│       registrations.js, messages.js, settings.js
 │
 ├── assets/
 │   ├── css/main.css, animations.css
@@ -45,6 +49,12 @@ ishmar-expo/
 │   ├── js/dynamic-home.js          ← Loads hero text/stats/events into index.html
 │   ├── js/dynamic-events.js        ← Loads the events.html grid
 │   ├── js/dynamic-gallery.js       ← Loads the gallery.html masonry grid
+│   ├── js/dynamic-videos.js        ← Featured-videos grid (index.html + media.html)
+│   ├── js/dynamic-partners.js      ← Sponsor/partner logo marquee (index.html)
+│   ├── js/dynamic-testimonials.js  ← Homepage testimonial carousel
+│   ├── js/dynamic-media.js         ← Press-mentions grid (media.html)
+│   ├── js/event-registration.js    ← In-page registration modal (events.html)
+│   ├── js/contact-form.js          ← Wires contact.html's form to contact_messages
 │   └── images/, videos/
 │
 ├── sitemap.xml, robots.txt
@@ -60,11 +70,11 @@ There is **no build step**. `supabase/*.js` and `assets/js/dynamic-*.js` are pla
 
 Each public page keeps its original static HTML as the first paint, and a `dynamic-*.js` module then fetches from Supabase and replaces the relevant section's contents (hero text, stat counters, the events grid, the gallery grid). If Supabase is unreachable, the page simply keeps showing its static fallback content instead of breaking — check the browser console for `[dynamic-*]` log lines if something isn't updating.
 
-**Intentionally still static in Phase 1** (see Roadmap for why and what's planned):
+**Intentionally still static** (see Roadmap for why and what's planned):
 - The hero's animated word-by-word headline ("Where Africa Meets the Halal World") — GSAP captures those spans as fixed references before any async data can arrive, so this specific animation would break if the words became dynamic. The eyebrow line and subtitle above/below it *are* dynamic.
-- The "Featured Event Spotlight" narrative section on events.html (hand-written two-column copy, not a simple field mapping).
-- about.html, services.html, media.html, contact.html, and the Insights blog — not wired to Supabase yet.
-- Videos, Sponsors, Partners, Testimonials, Media, Registrations, and the Contact form — tables/RLS/storage exist, admin CRUD UI doesn't yet.
+- The "Featured Event Spotlight" narrative section on events.html (hand-written two-column copy, not a simple field mapping) and the "Interviews" section on media.html (has outlet/byline/date fields the `media` table doesn't carry — see Roadmap).
+- about.html and services.html — team bios and service descriptions aren't backed by a table in the spec (there's no `team`/`services` table), so these stay hand-authored. contact.html's form now submits live to `contact_messages`; its office/contact info is still hardcoded rather than settings-driven.
+- The Insights blog — static by design (SEO/GEO long-form content, not day-to-day admin content).
 
 ---
 
@@ -147,19 +157,16 @@ The full policy-by-policy breakdown is in `supabase/policies.sql`; the client-si
 
 ---
 
-## Roadmap (Phase 2)
+## Roadmap
 
-Same proven pattern as Events/Gallery (a `supabase/*.js` module + an admin CRUD page + a public-page rewire) applied to the remaining content types. Their tables, RLS policies, and storage buckets already exist — only the admin UI and public-page wiring are left:
+**Phase 1 + Phase 2 are both complete.** Every content type in the original spec (events, gallery, videos, sponsors, partners, testimonials, media/press, registrations, contact messages, settings, users) has a working `supabase/*.js` module, a full admin CRUD page, and public-page wiring. What's left is smaller, lower-priority polish:
 
-- **Videos** — YouTube/Instagram links, thumbnails, featured toggle → wires into `index.html`'s video showcase and `media.html`.
-- **Sponsors / Partners** — logo upload, website, tier/description → wires into the homepage partner marquee.
-- **Testimonials** — photo, name, company, quote, featured toggle → wires into the homepage testimonial carousel.
-- **Media & Press** — press mentions (title, image, link) → wires into `media.html`.
-- **Registrations** — public registration form embedded on `events.html` (insert-only, RLS already enforces this), plus the admin Registrations page: search, filter by event, CSV export (native `Blob`, no dependency), Excel export (SheetJS via CDN), print attendee list.
-- **Messages** — wire `contact.html`'s form to `contact_messages` (insert-only), plus the admin inbox: unread/read/archive, search, reply-by-email (`mailto:` link).
-- **Users page polish** — currently role-only; could add profile editing, activity log.
-- **Dynamic hero headline** — if wanted, rebuild the GSAP word-reveal to regenerate `.hero-word`/`.hero-word-inner` spans from dynamic text *before* `heroAnimations()` runs (e.g. by inlining the settings fetch as a blocking script instead of a deferred module) rather than after.
-- **Rewire remaining pages** — about.html (team bios, stats), services.html (already rich static content — lower priority), contact.html (office list, socials from `settings`).
+- **Dynamic hero headline** — the word-by-word GSAP reveal stays hardcoded (see "Intentionally still static" above); rebuild it to regenerate `.hero-word`/`.hero-word-inner` spans from dynamic text *before* `heroAnimations()` runs (e.g. by inlining the settings fetch as a blocking script instead of a deferred module) if this is ever wanted.
+- **media.html "Interviews" section** — intentionally left static; the `media` table only has `title`/`image`/`link`, not the `outlet`/`byline`/`date` fields those cards use. Extending the schema with those columns (or reusing this table more loosely) would be needed to make it dynamic without losing detail.
+- **about.html / services.html rewiring** — team bios and service package descriptions aren't backed by any table in the current schema (there's no `team` or `services` table), so they stay hand-authored content. Adding tables for these would follow the exact same module + admin-page + public-wire pattern as everything else, if wanted later.
+- **contact.html office/contact info from `settings`** — the form now submits live to `contact_messages`, but the phone/email/address block on the page itself is still hardcoded rather than pulling from the `settings` table the way `index.html`'s footer does.
+- **Users page polish** — currently role-only; could add profile editing or an activity log.
+- **Realtime subscriptions** — `subscribeToEvents`/`subscribeToGallery`/`subscribeToVideos` exist but aren't wired into any page yet (would let the public site update live without a refresh when an admin publishes something).
 
 ---
 

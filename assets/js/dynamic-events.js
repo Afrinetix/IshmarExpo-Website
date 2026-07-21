@@ -32,13 +32,18 @@ function eventCardHTML(ev, index) {
     ? '<span class="badge badge-success"><i class="fas fa-check"></i> Completed</span>'
     : '<span class="badge badge-upcoming"><i class="fas fa-bell"></i> Upcoming</span>';
 
-  let ctaHref, ctaLabel, ctaIcon, ctaTarget = '';
+  // Three CTA states: past events point at the gallery; upcoming events with
+  // an external registration_link (Google Form, Eventbrite, etc.) send
+  // visitors straight there; upcoming events with no external link get our
+  // own in-page registration modal (see assets/js/event-registration.js),
+  // which writes into the `registrations` table.
+  let ctaHtml;
   if (isPast) {
-    ctaHref = 'gallery.html'; ctaLabel = 'View Gallery'; ctaIcon = 'fa-images';
+    ctaHtml = `<a href="gallery.html" class="btn btn-primary" style="padding:10px 20px; font-size:11px;">View Gallery <i class="fas fa-images"></i></a>`;
   } else if (regLink) {
-    ctaHref = regLink; ctaLabel = 'Register'; ctaIcon = 'fa-arrow-up-right-from-square'; ctaTarget = ' target="_blank" rel="noopener"';
+    ctaHtml = `<a href="${escapeHtml(regLink)}" class="btn btn-primary" style="padding:10px 20px; font-size:11px;" target="_blank" rel="noopener">Register <i class="fas fa-arrow-up-right-from-square"></i></a>`;
   } else {
-    ctaHref = 'contact.html'; ctaLabel = 'Get Info'; ctaIcon = 'fa-arrow-right';
+    ctaHtml = `<button type="button" class="btn btn-primary" style="padding:10px 20px; font-size:11px;" data-register-event="${escapeHtml(ev.id)}" data-register-title="${escapeHtml(ev.title)}">Register <i class="fas fa-ticket"></i></button>`;
   }
 
   return `
@@ -58,7 +63,7 @@ function eventCardHTML(ev, index) {
         </div>
         <div class="event-card-footer">
           ${footerBadge}
-          <a href="${escapeHtml(ctaHref)}" class="btn btn-primary" style="padding:10px 20px; font-size:11px;"${ctaTarget}>${ctaLabel} <i class="fas ${ctaIcon}"></i></a>
+          ${ctaHtml}
         </div>
       </div>
     </article>`;

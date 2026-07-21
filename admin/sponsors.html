@@ -17,21 +17,241 @@
     <div class="main">
       <header class="topbar" id="topbar-root"></header>
       <div class="content">
-        <div class="panel">
-          <div class="panel-body state-msg">
-            <i class="fas fa-handshake"></i>
-            Sponsor management (logo upload, website, tier level) ships in Phase 2.<br />
-            The <code>sponsors</code> table and storage bucket already exist — see README.md → Roadmap for the plan.
+
+        <div class="panel" id="sponsor-form-panel" style="display:none;">
+          <div class="panel-header">
+            <div class="panel-title" id="sponsor-form-title">New Sponsor</div>
+            <button class="btn btn-ghost btn-sm" id="sponsor-form-close"><i class="fas fa-xmark"></i> Close</button>
+          </div>
+          <div class="panel-body">
+            <form id="sponsor-form">
+              <input type="hidden" id="sponsor-id" />
+              <div class="form-grid">
+                <div class="field">
+                  <label for="sponsor-company">Company Name *</label>
+                  <input type="text" id="sponsor-company" required />
+                </div>
+                <div class="field">
+                  <label for="sponsor-website">Website</label>
+                  <input type="url" id="sponsor-website" placeholder="https://..." />
+                </div>
+              </div>
+
+              <div class="field">
+                <label for="sponsor-level">Sponsorship Level</label>
+                <select id="sponsor-level">
+                  <option value="">— Select —</option>
+                  <option value="Silver">Silver</option>
+                  <option value="Gold">Gold</option>
+                  <option value="Platinum">Platinum</option>
+                  <option value="__other">Other…</option>
+                </select>
+                <input type="text" id="sponsor-level-other" placeholder="Enter custom level" style="display:none; margin-top:10px;" />
+              </div>
+
+              <div class="field">
+                <label for="sponsor-logo-file">Logo</label>
+                <div class="file-drop" id="sponsor-logo-drop">
+                  <i class="fas fa-image" style="font-size:22px; margin-bottom:8px; display:block;"></i>
+                  <span id="sponsor-logo-label">Click to choose a logo (JPG/PNG/WebP/SVG, max 5MB)</span>
+                  <input type="file" id="sponsor-logo-file" accept="image/jpeg,image/png,image/webp,image/svg+xml" />
+                </div>
+                <img id="sponsor-logo-preview" style="display:none; margin-top:12px; max-height:120px; border-radius:8px;" />
+              </div>
+
+              <div class="modal-actions" style="justify-content:flex-start;">
+                <button type="submit" class="btn btn-primary" id="sponsor-save-btn"><i class="fas fa-check"></i> Save Sponsor</button>
+                <button type="button" class="btn btn-ghost" id="sponsor-form-cancel">Cancel</button>
+              </div>
+            </form>
           </div>
         </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">All Sponsors</div>
+            <button class="btn btn-primary btn-sm" id="new-sponsor-btn"><i class="fas fa-plus"></i> New Sponsor</button>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr><th></th><th>Company</th><th>Website</th><th>Level</th><th></th></tr>
+              </thead>
+              <tbody id="sponsors-tbody">
+                <tr><td colspan="5" class="state-msg"><span class="spinner"></span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
+
   <div id="toast-stack"></div>
+
   <script type="module">
-    import { initShell } from './js/dashboard-shell.js';
+    import { initShell, toast, toastError, confirmModal, escapeHtml, safeUrl } from './js/dashboard-shell.js';
+    import { getAllSponsorsForAdmin, createSponsor, updateSponsor, deleteSponsor } from '../supabase/sponsors.js';
+    import { uploadFile, deleteFile, pathFromPublicUrl, BUCKETS } from '../supabase/storage.js';
+    import { hasPermission } from '../supabase/auth.js';
+
     const profile = await initShell({ active: 'sponsors.html', title: 'Sponsors' });
     if (!profile) throw new Error('redirecting');
+
+    const canWrite = hasPermission('sponsors', 'write', profile.role);
+    const canDelete = hasPermission('sponsors', 'delete', profile.role);
+    if (!canWrite) document.getElementById('new-sponsor-btn').style.display = 'none';
+
+    const panel = document.getElementById('sponsor-form-panel');
+    const form = document.getElementById('sponsor-form');
+    let pendingLogoFile = null;
+    let sponsors = [];
+
+    const KNOWN_LEVELS = ['Silver', 'Gold', 'Platinum'];
+    const levelSelect = document.getElementById('sponsor-level');
+    const levelOther = document.getElementById('sponsor-level-other');
+    levelSelect.addEventListener('change', () => {
+      levelOther.style.display = levelSelect.value === '__other' ? 'block' : 'none';
+    });
+
+    function openForm(sponsor = null) {
+      form.reset();
+      pendingLogoFile = null;
+      document.getElementById('sponsor-logo-preview').style.display = 'none';
+      document.getElementById('sponsor-logo-label').textContent = 'Click to choose a logo (JPG/PNG/WebP/SVG, max 5MB)';
+      levelOther.style.display = 'none';
+      levelOther.value = '';
+      document.getElementById('sponsor-id').value = sponsor?.id || '';
+      document.getElementById('sponsor-form-title').textContent = sponsor ? 'Edit Sponsor' : 'New Sponsor';
+      document.getElementById('sponsor-company').value = sponsor?.company_name || '';
+      document.getElementById('sponsor-website').value = sponsor?.website || '';
+      if (sponsor?.level && KNOWN_LEVELS.includes(sponsor.level)) {
+        levelSelect.value = sponsor.level;
+      } else if (sponsor?.level) {
+        levelSelect.value = '__other';
+        levelOther.value = sponsor.level;
+        levelOther.style.display = 'block';
+      } else {
+        levelSelect.value = '';
+      }
+      if (sponsor?.logo) {
+        const preview = document.getElementById('sponsor-logo-preview');
+        preview.src = sponsor.logo;
+        preview.style.display = 'block';
+      }
+      panel.style.display = 'block';
+      panel.scrollIntoView({ behavior: 'smooth' });
+    }
+    function closeForm() {
+      panel.style.display = 'none';
+      form.reset();
+    }
+
+    document.getElementById('new-sponsor-btn').addEventListener('click', () => openForm());
+    document.getElementById('sponsor-form-close').addEventListener('click', closeForm);
+    document.getElementById('sponsor-form-cancel').addEventListener('click', closeForm);
+
+    const dropZone = document.getElementById('sponsor-logo-drop');
+    const fileInput = document.getElementById('sponsor-logo-file');
+    dropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      pendingLogoFile = file;
+      document.getElementById('sponsor-logo-label').textContent = file.name;
+      const preview = document.getElementById('sponsor-logo-preview');
+      preview.src = URL.createObjectURL(file);
+      preview.style.display = 'block';
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const saveBtn = document.getElementById('sponsor-save-btn');
+      saveBtn.disabled = true;
+      try {
+        const id = document.getElementById('sponsor-id').value || null;
+        const existing = id ? sponsors.find((s) => s.id === id) : null;
+
+        let logoUrl = existing?.logo || null;
+        if (pendingLogoFile) {
+          const { publicUrl } = await uploadFile(BUCKETS.SPONSORS, pendingLogoFile, { folder: 'sponsors' });
+          logoUrl = publicUrl;
+        }
+
+        const level = levelSelect.value === '__other' ? levelOther.value.trim() : levelSelect.value;
+
+        const payload = {
+          company_name: document.getElementById('sponsor-company').value.trim(),
+          website: document.getElementById('sponsor-website').value.trim() || null,
+          level: level || null,
+          logo: logoUrl,
+        };
+
+        if (id) {
+          await updateSponsor(id, payload);
+          toast('Sponsor updated.');
+        } else {
+          await createSponsor({ ...payload, created_by: profile.id });
+          toast('Sponsor created.');
+        }
+        closeForm();
+        await loadSponsors();
+      } catch (err) {
+        toastError(err);
+      } finally {
+        saveBtn.disabled = false;
+      }
+    });
+
+    async function handleDelete(sponsor) {
+      const ok = await confirmModal({
+        title: 'Delete this sponsor?',
+        text: `"${sponsor.company_name}" will be permanently removed. This can't be undone.`,
+      });
+      if (!ok) return;
+      try {
+        await deleteSponsor(sponsor.id);
+        if (sponsor.logo) {
+          const path = pathFromPublicUrl(BUCKETS.SPONSORS, sponsor.logo);
+          if (path) await deleteFile(BUCKETS.SPONSORS, path).catch(() => {});
+        }
+        toast('Sponsor deleted.');
+        await loadSponsors();
+      } catch (err) {
+        toastError(err);
+      }
+    }
+
+    async function loadSponsors() {
+      const tbody = document.getElementById('sponsors-tbody');
+      try {
+        sponsors = await getAllSponsorsForAdmin();
+        if (!sponsors.length) {
+          tbody.innerHTML = '<tr><td colspan="5" class="state-msg"><i class="fas fa-handshake"></i>No sponsors yet — add your first one.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = sponsors.map((s) => `
+          <tr>
+            <td>${s.logo ? `<img src="${escapeHtml(safeUrl(s.logo))}" class="table-thumb" alt="" />` : ''}</td>
+            <td><strong>${escapeHtml(s.company_name)}</strong></td>
+            <td>${safeUrl(s.website) ? `<a href="${escapeHtml(safeUrl(s.website))}" target="_blank" rel="noopener">${escapeHtml(s.website)}</a>` : '—'}</td>
+            <td>${s.level ? `<span class="badge badge-gold">${escapeHtml(s.level)}</span>` : '—'}</td>
+            <td class="table-actions">
+              ${canWrite ? `<button class="btn btn-outline btn-icon" data-edit="${s.id}" title="Edit"><i class="fas fa-pen"></i></button>` : ''}
+              ${canDelete ? `<button class="btn btn-danger btn-icon" data-delete="${s.id}" title="Delete"><i class="fas fa-trash"></i></button>` : ''}
+            </td>
+          </tr>`).join('');
+
+        tbody.querySelectorAll('[data-edit]').forEach((btn) => btn.addEventListener('click', () => openForm(sponsors.find((s) => s.id === btn.dataset.edit))));
+        tbody.querySelectorAll('[data-delete]').forEach((btn) => btn.addEventListener('click', () => handleDelete(sponsors.find((s) => s.id === btn.dataset.delete))));
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="5" class="state-msg">Could not load sponsors.</td></tr>';
+        toastError(err);
+      }
+    }
+
+    loadSponsors();
   </script>
 </body>
 </html>

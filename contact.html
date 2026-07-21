@@ -278,7 +278,7 @@
               <button class="inquiry-tab" type="button">Partnership</button>
             </div>
 
-            <form novalidate>
+            <form novalidate id="contact-form">
               <div class="form-row">
                 <div class="form-group">
                   <label class="form-label" for="first-name">First Name *</label>
@@ -336,14 +336,20 @@
               </div>
               <div style="margin-bottom:20px;">
                 <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
-                  <input type="checkbox" style="margin-top:3px;accent-color:var(--gold);" />
+                  <input type="checkbox" id="consent" style="margin-top:3px;accent-color:var(--gold);" required />
                   <span style="font-size:13px;color:var(--gray);line-height:1.6;">I agree to receive communications from Ishmar Expo Limited and understand I can unsubscribe at any time. View our <a href="#" style="color:var(--gold);">Privacy Policy</a>.</span>
                 </label>
               </div>
-              <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:18px;">
+              <div id="contact-form-error" style="display:none; color:#E5484D; font-size:13px; margin-bottom:16px;"></div>
+              <button type="submit" class="btn btn-primary" id="contact-form-submit" style="width:100%;justify-content:center;padding:18px;">
                 <i class="fas fa-paper-plane"></i> Send Message
               </button>
             </form>
+            <div id="contact-form-success" style="display:none; text-align:center; padding:40px 20px;">
+              <i class="fas fa-circle-check" style="font-size:44px; color:var(--gold); margin-bottom:18px; display:block;"></i>
+              <h3 style="font-family:var(--font-display); font-size:24px; font-weight:700; color:var(--ink); margin-bottom:10px;">Message Sent</h3>
+              <p style="color:var(--gray); font-size:14px; line-height:1.7;">Thank you for reaching out. We'll get back to you within 24 business hours.</p>
+            </div>
           </div>
         </div>
 
@@ -607,6 +613,7 @@
   <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
   <script src="assets/js/main.js"></script>
   <script src="assets/js/animations.js"></script>
+  <script type="module" src="assets/js/contact-form.js"></script>
   <script>
     // Inquiry tabs (highlight form, no content switch needed)
     document.querySelectorAll('.inquiry-tab').forEach(tab => {

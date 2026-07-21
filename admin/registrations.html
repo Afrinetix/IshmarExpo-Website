@@ -10,6 +10,18 @@
   <link rel="icon" type="image/png" sizes="16x16" href="../assets/images/favicon-16x16.png" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="stylesheet" href="css/admin.css" />
+  <style>
+    .reg-toolbar { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin-bottom:0; }
+    .reg-toolbar .field { margin-bottom:0; min-width:180px; }
+    .reg-toolbar .field.grow { flex:1; min-width:220px; }
+    .reg-export-bar { display:flex; gap:8px; flex-wrap:wrap; }
+    .reg-count { font-size:12.5px; color:var(--gray); margin-bottom:14px; }
+    @media print {
+      .sidebar, .topbar, .reg-toolbar, .reg-export-bar, .table-actions, th.print-hide, td.print-hide { display:none !important; }
+      .app-shell, .main, .content { display:block !important; }
+      .panel { border:none; box-shadow:none; }
+    }
+  </style>
 </head>
 <body>
   <div class="app-shell">
@@ -17,23 +29,238 @@
     <div class="main">
       <header class="topbar" id="topbar-root"></header>
       <div class="content">
+
         <div class="panel">
-          <div class="panel-body state-msg">
-            <i class="fas fa-ticket"></i>
-            Registration management (search, filter by event, CSV/Excel export, print attendee list) ships in Phase 2,
-            alongside the public registration form on events.html.<br />
-            The <code>registrations</code> table and RLS policies already exist — see README.md → Roadmap for the plan.
+          <div class="panel-header">
+            <div class="panel-title">Registrations</div>
+            <div class="reg-export-bar">
+              <button class="btn btn-outline btn-sm" id="export-csv-btn"><i class="fas fa-file-csv"></i> Export CSV</button>
+              <button class="btn btn-outline btn-sm" id="export-xlsx-btn"><i class="fas fa-file-excel"></i> Export Excel</button>
+              <button class="btn btn-outline btn-sm" id="print-btn"><i class="fas fa-print"></i> Print List</button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="reg-toolbar">
+              <div class="field grow">
+                <label for="reg-search">Search</label>
+                <input type="text" id="reg-search" placeholder="Name, email, or company…" />
+              </div>
+              <div class="field">
+                <label for="reg-event-filter">Event</label>
+                <select id="reg-event-filter"><option value="">All Events</option></select>
+              </div>
+              <div class="field">
+                <label for="reg-status-filter">Payment Status</label>
+                <select id="reg-status-filter">
+                  <option value="">All Statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="paid">Paid</option>
+                  <option value="waived">Waived</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="panel-body" style="padding-top:0;">
+            <div class="reg-count" id="reg-count"></div>
+            <div class="table-wrap">
+              <table class="data-table" id="reg-table">
+                <thead>
+                  <tr>
+                    <th>Name</th><th>Company / Position</th><th>Email</th><th>Phone</th>
+                    <th>Event</th><th>Ticket</th><th>Status</th><th>Registered</th><th class="print-hide"></th>
+                  </tr>
+                </thead>
+                <tbody id="reg-tbody">
+                  <tr><td colspan="9" class="state-msg"><span class="spinner"></span></td></tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
+
       </div>
     </div>
   </div>
+
   <div id="toast-stack"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script type="module">
-    import { initShell } from './js/dashboard-shell.js';
+    import { initShell, toast, toastError, confirmModal, escapeHtml } from './js/dashboard-shell.js';
+    import { getAllRegistrationsForAdmin, updateRegistration, deleteRegistration, getEventsForRegistrationPicker } from '../supabase/registrations.js';
+    import { hasPermission } from '../supabase/auth.js';
     import { ROLES } from '../supabase/config.js';
+
     const profile = await initShell({ active: 'registrations.html', title: 'Registrations', allowedRoles: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.EVENT_MANAGER] });
     if (!profile) throw new Error('redirecting');
+
+    const canWrite = hasPermission('registrations', 'write', profile.role);
+    const canDelete = hasPermission('registrations', 'delete', profile.role);
+
+    let registrations = [];
+    let searchDebounce = null;
+
+    function fmtDate(iso) {
+      return new Date(iso).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+    function statusBadgeClass(status) {
+      return { paid: 'badge-success', pending: 'badge-gold', waived: 'badge-info', cancelled: 'badge-danger' }[status] || 'badge-gray';
+    }
+
+    async function populateEventFilter() {
+      try {
+        const events = await getEventsForRegistrationPicker();
+        const select = document.getElementById('reg-event-filter');
+        events.forEach((ev) => {
+          const opt = document.createElement('option');
+          opt.value = ev.id;
+          opt.textContent = ev.title;
+          select.appendChild(opt);
+        });
+      } catch (err) {
+        // Filter dropdown failing to populate isn't fatal — the table still loads unfiltered.
+        console.error('[registrations] Could not load events for filter:', err);
+      }
+    }
+
+    function currentFilters() {
+      return {
+        search: document.getElementById('reg-search').value.trim() || undefined,
+        eventId: document.getElementById('reg-event-filter').value || undefined,
+        paymentStatus: document.getElementById('reg-status-filter').value || undefined,
+      };
+    }
+
+    function renderRow(r) {
+      const eventTitle = r.events?.title || '<span style="color:var(--gray);">Deleted event</span>';
+      return `
+        <tr>
+          <td><strong>${escapeHtml(r.full_name)}</strong></td>
+          <td>${escapeHtml(r.company) || '—'}${r.position ? ` <span style="color:var(--gray);">· ${escapeHtml(r.position)}</span>` : ''}</td>
+          <td>${escapeHtml(r.email)}</td>
+          <td>${escapeHtml(r.phone) || '—'}</td>
+          <td>${eventTitle}</td>
+          <td>${escapeHtml(r.ticket_type) || '—'}</td>
+          <td>
+            ${canWrite
+              ? `<select class="status-select" data-id="${r.id}" style="border:1.5px solid var(--border); border-radius:6px; padding:5px 8px; font-size:12px;">
+                  ${['pending', 'paid', 'waived', 'cancelled'].map((s) => `<option value="${s}" ${s === r.payment_status ? 'selected' : ''}>${s}</option>`).join('')}
+                </select>`
+              : `<span class="badge ${statusBadgeClass(r.payment_status)}">${escapeHtml(r.payment_status)}</span>`}
+          </td>
+          <td>${fmtDate(r.created_at)}</td>
+          <td class="table-actions print-hide">
+            ${canDelete ? `<button class="btn btn-danger btn-icon" data-delete="${r.id}" title="Delete"><i class="fas fa-trash"></i></button>` : ''}
+          </td>
+        </tr>`;
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('reg-tbody');
+      document.getElementById('reg-count').textContent = `${registrations.length} registration${registrations.length === 1 ? '' : 's'}`;
+
+      if (!registrations.length) {
+        tbody.innerHTML = '<tr><td colspan="9" class="state-msg"><i class="fas fa-ticket"></i>No registrations match these filters.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = registrations.map(renderRow).join('');
+
+      tbody.querySelectorAll('.status-select').forEach((select) => {
+        select.addEventListener('change', async () => {
+          try {
+            await updateRegistration(select.dataset.id, { payment_status: select.value });
+            const row = registrations.find((r) => r.id === select.dataset.id);
+            if (row) row.payment_status = select.value;
+            toast('Payment status updated.');
+          } catch (err) {
+            toastError(err);
+            await loadRegistrations();
+          }
+        });
+      });
+
+      tbody.querySelectorAll('[data-delete]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const reg = registrations.find((r) => r.id === btn.dataset.delete);
+          const ok = await confirmModal({
+            title: 'Delete this registration?',
+            text: `${reg.full_name}'s registration will be permanently removed. This can't be undone.`,
+          });
+          if (!ok) return;
+          try {
+            await deleteRegistration(reg.id);
+            toast('Registration deleted.');
+            await loadRegistrations();
+          } catch (err) {
+            toastError(err);
+          }
+        });
+      });
+    }
+
+    async function loadRegistrations() {
+      const tbody = document.getElementById('reg-tbody');
+      try {
+        registrations = await getAllRegistrationsForAdmin(currentFilters());
+        renderTable();
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="9" class="state-msg">Could not load registrations.</td></tr>';
+        toastError(err);
+      }
+    }
+
+    document.getElementById('reg-search').addEventListener('input', () => {
+      clearTimeout(searchDebounce);
+      searchDebounce = setTimeout(loadRegistrations, 350);
+    });
+    document.getElementById('reg-event-filter').addEventListener('change', loadRegistrations);
+    document.getElementById('reg-status-filter').addEventListener('change', loadRegistrations);
+
+    /* ── Export helpers ── */
+    const EXPORT_COLUMNS = ['Full Name', 'Company', 'Position', 'Email', 'Phone', 'Country', 'Event', 'Ticket Type', 'Payment Status', 'Registered'];
+    function toExportRows() {
+      return registrations.map((r) => [
+        r.full_name, r.company || '', r.position || '', r.email, r.phone || '', r.country || '',
+        r.events?.title || '', r.ticket_type || '', r.payment_status, fmtDate(r.created_at),
+      ]);
+    }
+    function csvEscape(value) {
+      const str = String(value ?? '');
+      return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+    }
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    document.getElementById('export-csv-btn').addEventListener('click', () => {
+      if (!registrations.length) return toast('Nothing to export for the current filters.', 'error');
+      const rows = [EXPORT_COLUMNS, ...toExportRows()];
+      const csv = rows.map((row) => row.map(csvEscape).join(',')).join('\r\n');
+      downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8;' }), `ishmar-registrations-${new Date().toISOString().slice(0, 10)}.csv`);
+    });
+
+    document.getElementById('export-xlsx-btn').addEventListener('click', () => {
+      if (!registrations.length) return toast('Nothing to export for the current filters.', 'error');
+      if (typeof XLSX === 'undefined') return toast('Excel export library failed to load — check your connection and try again.', 'error');
+      const sheet = XLSX.utils.aoa_to_sheet([EXPORT_COLUMNS, ...toExportRows()]);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, sheet, 'Registrations');
+      XLSX.writeFile(workbook, `ishmar-registrations-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    });
+
+    document.getElementById('print-btn').addEventListener('click', () => window.print());
+
+    populateEventFilter();
+    loadRegistrations();
   </script>
 </body>
 </html>

@@ -17,21 +17,274 @@
     <div class="main">
       <header class="topbar" id="topbar-root"></header>
       <div class="content">
-        <div class="panel">
-          <div class="panel-body state-msg">
-            <i class="fas fa-film"></i>
-            Video management (YouTube/Instagram links, thumbnails, featured toggle) ships in Phase 2.<br />
-            The <code>videos</code> table and storage bucket already exist — see README.md → Roadmap for the plan.
+
+        <div class="panel" id="video-form-panel" style="display:none;">
+          <div class="panel-header">
+            <div class="panel-title" id="video-form-title">New Video</div>
+            <button class="btn btn-ghost btn-sm" id="video-form-close"><i class="fas fa-xmark"></i> Close</button>
+          </div>
+          <div class="panel-body">
+            <form id="video-form">
+              <input type="hidden" id="video-id" />
+              <div class="field">
+                <label for="video-title">Title *</label>
+                <input type="text" id="video-title" required />
+              </div>
+
+              <div class="form-grid">
+                <div class="field">
+                  <label for="video-youtube">YouTube URL</label>
+                  <input type="url" id="video-youtube" placeholder="https://youtube.com/watch?v=... or just the video ID" />
+                </div>
+                <div class="field">
+                  <label for="video-instagram">Instagram URL</label>
+                  <input type="url" id="video-instagram" placeholder="https://www.instagram.com/reel/..." />
+                </div>
+              </div>
+              <div class="field-hint">At least one of YouTube URL or Instagram URL is required.</div>
+
+              <div class="field">
+                <label for="video-thumbnail-file">Thumbnail</label>
+                <div class="file-drop" id="video-thumbnail-drop">
+                  <i class="fas fa-image" style="font-size:22px; margin-bottom:8px; display:block;"></i>
+                  <span id="video-thumbnail-label">Click to choose an image (JPG/PNG/WebP, max 100MB)</span>
+                  <input type="file" id="video-thumbnail-file" accept="image/jpeg,image/png,image/webp" />
+                </div>
+                <img id="video-thumbnail-preview" style="display:none; margin-top:12px; max-height:140px; border-radius:8px;" />
+              </div>
+
+              <div class="form-grid single">
+                <div class="checkbox-field field"><input type="checkbox" id="video-featured" /><label for="video-featured">Feature this video on the homepage</label></div>
+              </div>
+
+              <div class="modal-actions" style="justify-content:flex-start;">
+                <button type="submit" class="btn btn-primary" id="video-save-btn"><i class="fas fa-check"></i> Save Video</button>
+                <button type="button" class="btn btn-ghost" id="video-form-cancel">Cancel</button>
+              </div>
+            </form>
           </div>
         </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">All Videos</div>
+            <button class="btn btn-primary btn-sm" id="new-video-btn"><i class="fas fa-plus"></i> New Video</button>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr><th></th><th>Title</th><th>Platform</th><th>Featured</th><th></th></tr>
+              </thead>
+              <tbody id="videos-tbody">
+                <tr><td colspan="5" class="state-msg"><span class="spinner"></span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
+
   <div id="toast-stack"></div>
+
   <script type="module">
-    import { initShell } from './js/dashboard-shell.js';
+    import { initShell, toast, toastError, confirmModal, escapeHtml, safeUrl } from './js/dashboard-shell.js';
+    import { getAllVideosForAdmin, createVideo, updateVideo, deleteVideo } from '../supabase/videos.js';
+    import { uploadFile, deleteFile, pathFromPublicUrl, BUCKETS } from '../supabase/storage.js';
+    import { hasPermission } from '../supabase/auth.js';
+
     const profile = await initShell({ active: 'videos.html', title: 'Videos' });
     if (!profile) throw new Error('redirecting');
+
+    const canWrite = hasPermission('videos', 'write', profile.role);
+    const canDelete = hasPermission('videos', 'delete', profile.role);
+    if (!canWrite) document.getElementById('new-video-btn').style.display = 'none';
+
+    const panel = document.getElementById('video-form-panel');
+    const form = document.getElementById('video-form');
+    let pendingThumbnailFile = null;
+    let videos = [];
+
+    /**
+     * Accepts a full YouTube URL (youtube.com/watch?v=..., youtu.be/...) or a
+     * bare 11-char video ID, and returns just the ID — that's all the DB
+     * column and the public-page lightbox (assets/js/main.js) need.
+     */
+    function extractYoutubeId(input) {
+      const value = (input || '').trim();
+      if (!value) return '';
+      try {
+        const url = new URL(value);
+        if (url.hostname.includes('youtu.be')) {
+          return url.pathname.replace(/^\//, '').split('/')[0] || '';
+        }
+        if (url.hostname.includes('youtube.com')) {
+          const v = url.searchParams.get('v');
+          if (v) return v;
+          // Handles youtube.com/embed/<id> or youtube.com/shorts/<id>
+          const parts = url.pathname.split('/').filter(Boolean);
+          return parts[parts.length - 1] || '';
+        }
+      } catch {
+        // Not a URL — treat as a bare video ID.
+        return value;
+      }
+      return value;
+    }
+
+    function openForm(video = null) {
+      form.reset();
+      pendingThumbnailFile = null;
+      document.getElementById('video-thumbnail-preview').style.display = 'none';
+      document.getElementById('video-thumbnail-label').textContent = 'Click to choose an image (JPG/PNG/WebP, max 100MB)';
+      document.getElementById('video-id').value = video?.id || '';
+      document.getElementById('video-form-title').textContent = video ? 'Edit Video' : 'New Video';
+      document.getElementById('video-title').value = video?.title || '';
+      document.getElementById('video-youtube').value = video?.youtube_url || '';
+      document.getElementById('video-instagram').value = video?.instagram_url || '';
+      document.getElementById('video-featured').checked = !!video?.featured;
+      if (video?.thumbnail) {
+        const preview = document.getElementById('video-thumbnail-preview');
+        preview.src = video.thumbnail;
+        preview.style.display = 'block';
+      }
+      panel.style.display = 'block';
+      panel.scrollIntoView({ behavior: 'smooth' });
+    }
+    function closeForm() {
+      panel.style.display = 'none';
+      form.reset();
+    }
+
+    document.getElementById('new-video-btn').addEventListener('click', () => openForm());
+    document.getElementById('video-form-close').addEventListener('click', closeForm);
+    document.getElementById('video-form-cancel').addEventListener('click', closeForm);
+
+    const dropZone = document.getElementById('video-thumbnail-drop');
+    const fileInput = document.getElementById('video-thumbnail-file');
+    dropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      pendingThumbnailFile = file;
+      document.getElementById('video-thumbnail-label').textContent = file.name;
+      const preview = document.getElementById('video-thumbnail-preview');
+      preview.src = URL.createObjectURL(file);
+      preview.style.display = 'block';
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const saveBtn = document.getElementById('video-save-btn');
+      saveBtn.disabled = true;
+      try {
+        const youtubeId = extractYoutubeId(document.getElementById('video-youtube').value);
+        const instagramUrl = document.getElementById('video-instagram').value.trim();
+
+        if (!youtubeId && !instagramUrl) {
+          toast('Provide a YouTube URL or an Instagram URL — at least one is required.', 'error');
+          return;
+        }
+
+        const id = document.getElementById('video-id').value || null;
+        const existing = id ? videos.find((v) => v.id === id) : null;
+
+        let thumbnailUrl = existing?.thumbnail || null;
+        if (pendingThumbnailFile) {
+          const { publicUrl } = await uploadFile(BUCKETS.VIDEOS, pendingThumbnailFile, { folder: 'videos' });
+          thumbnailUrl = publicUrl;
+        }
+
+        const payload = {
+          title: document.getElementById('video-title').value.trim(),
+          youtube_url: youtubeId || null,
+          instagram_url: instagramUrl || null,
+          thumbnail: thumbnailUrl,
+          featured: document.getElementById('video-featured').checked,
+        };
+
+        if (id) {
+          await updateVideo(id, payload);
+          toast('Video updated.');
+        } else {
+          await createVideo({ ...payload, created_by: profile.id });
+          toast('Video created.');
+        }
+        closeForm();
+        await loadVideos();
+      } catch (err) {
+        toastError(err);
+      } finally {
+        saveBtn.disabled = false;
+      }
+    });
+
+    async function handleDelete(video) {
+      const ok = await confirmModal({
+        title: 'Delete this video?',
+        text: `"${video.title}" will be permanently removed. This can't be undone.`,
+      });
+      if (!ok) return;
+      try {
+        await deleteVideo(video.id);
+        if (video.thumbnail) {
+          const path = pathFromPublicUrl(BUCKETS.VIDEOS, video.thumbnail);
+          if (path) await deleteFile(BUCKETS.VIDEOS, path).catch(() => {});
+        }
+        toast('Video deleted.');
+        await loadVideos();
+      } catch (err) {
+        toastError(err);
+      }
+    }
+
+    async function toggleFeatured(video) {
+      try {
+        await updateVideo(video.id, { featured: !video.featured });
+        await loadVideos();
+      } catch (err) {
+        toastError(err);
+      }
+    }
+
+    function platformBadges(video) {
+      const badges = [];
+      if (video.youtube_url) badges.push('<span class="badge badge-gold"><i class="fab fa-youtube"></i> YouTube</span>');
+      if (video.instagram_url) badges.push('<span class="badge badge-gray"><i class="fab fa-instagram"></i> Instagram</span>');
+      return badges.join(' ') || '—';
+    }
+
+    async function loadVideos() {
+      const tbody = document.getElementById('videos-tbody');
+      try {
+        videos = await getAllVideosForAdmin();
+        if (!videos.length) {
+          tbody.innerHTML = '<tr><td colspan="5" class="state-msg"><i class="fas fa-film"></i>No videos yet — add your first one.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = videos.map((v) => `
+          <tr>
+            <td>${v.thumbnail ? `<img src="${escapeHtml(safeUrl(v.thumbnail))}" class="table-thumb" alt="" />` : ''}</td>
+            <td><strong>${escapeHtml(v.title)}</strong></td>
+            <td>${platformBadges(v)}</td>
+            <td>${canWrite ? `<label class="switch"><input type="checkbox" data-toggle="featured" data-id="${v.id}" ${v.featured ? 'checked' : ''}/><span class="switch-track"></span></label>` : (v.featured ? '<span class="badge badge-gold">Yes</span>' : '—')}</td>
+            <td class="table-actions">
+              ${canWrite ? `<button class="btn btn-outline btn-icon" data-edit="${v.id}" title="Edit"><i class="fas fa-pen"></i></button>` : ''}
+              ${canDelete ? `<button class="btn btn-danger btn-icon" data-delete="${v.id}" title="Delete"><i class="fas fa-trash"></i></button>` : ''}
+            </td>
+          </tr>`).join('');
+
+        tbody.querySelectorAll('[data-edit]').forEach((btn) => btn.addEventListener('click', () => openForm(videos.find((v) => v.id === btn.dataset.edit))));
+        tbody.querySelectorAll('[data-delete]').forEach((btn) => btn.addEventListener('click', () => handleDelete(videos.find((v) => v.id === btn.dataset.delete))));
+        tbody.querySelectorAll('[data-toggle]').forEach((input) => input.addEventListener('change', () => toggleFeatured(videos.find((v) => v.id === input.dataset.id))));
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="5" class="state-msg">Could not load videos.</td></tr>';
+        toastError(err);
+      }
+    }
+
+    loadVideos();
   </script>
 </body>
 </html>

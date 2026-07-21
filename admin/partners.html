@@ -17,21 +17,215 @@
     <div class="main">
       <header class="topbar" id="topbar-root"></header>
       <div class="content">
-        <div class="panel">
-          <div class="panel-body state-msg">
-            <i class="fas fa-people-group"></i>
-            Partner management (logo upload, website, description) ships in Phase 2.<br />
-            The <code>partners</code> table and storage bucket already exist — see README.md → Roadmap for the plan.
+
+        <div class="panel" id="partner-form-panel" style="display:none;">
+          <div class="panel-header">
+            <div class="panel-title" id="partner-form-title">New Partner</div>
+            <button class="btn btn-ghost btn-sm" id="partner-form-close"><i class="fas fa-xmark"></i> Close</button>
+          </div>
+          <div class="panel-body">
+            <form id="partner-form">
+              <input type="hidden" id="partner-id" />
+              <div class="form-grid">
+                <div class="field">
+                  <label for="partner-company">Company Name *</label>
+                  <input type="text" id="partner-company" required />
+                </div>
+                <div class="field">
+                  <label for="partner-website">Website</label>
+                  <input type="url" id="partner-website" placeholder="https://..." />
+                </div>
+              </div>
+
+              <div class="field">
+                <label for="partner-description">Description</label>
+                <textarea id="partner-description" rows="3"></textarea>
+              </div>
+
+              <div class="field">
+                <label for="partner-logo-file">Logo</label>
+                <div class="file-drop" id="partner-logo-drop">
+                  <i class="fas fa-image" style="font-size:22px; margin-bottom:8px; display:block;"></i>
+                  <span id="partner-logo-label">Click to choose a logo (JPG/PNG/WebP/SVG, max 5MB)</span>
+                  <input type="file" id="partner-logo-file" accept="image/jpeg,image/png,image/webp,image/svg+xml" />
+                </div>
+                <img id="partner-logo-preview" style="display:none; margin-top:12px; max-height:120px; border-radius:8px;" />
+              </div>
+
+              <div class="modal-actions" style="justify-content:flex-start;">
+                <button type="submit" class="btn btn-primary" id="partner-save-btn"><i class="fas fa-check"></i> Save Partner</button>
+                <button type="button" class="btn btn-ghost" id="partner-form-cancel">Cancel</button>
+              </div>
+            </form>
           </div>
         </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">All Partners</div>
+            <button class="btn btn-primary btn-sm" id="new-partner-btn"><i class="fas fa-plus"></i> New Partner</button>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr><th></th><th>Company</th><th>Website</th><th>Description</th><th></th></tr>
+              </thead>
+              <tbody id="partners-tbody">
+                <tr><td colspan="5" class="state-msg"><span class="spinner"></span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
+
   <div id="toast-stack"></div>
+
   <script type="module">
-    import { initShell } from './js/dashboard-shell.js';
+    import { initShell, toast, toastError, confirmModal, escapeHtml, safeUrl } from './js/dashboard-shell.js';
+    import { getAllPartnersForAdmin, createPartner, updatePartner, deletePartner } from '../supabase/partners.js';
+    import { uploadFile, deleteFile, pathFromPublicUrl, BUCKETS } from '../supabase/storage.js';
+    import { hasPermission } from '../supabase/auth.js';
+
     const profile = await initShell({ active: 'partners.html', title: 'Partners' });
     if (!profile) throw new Error('redirecting');
+
+    const canWrite = hasPermission('partners', 'write', profile.role);
+    const canDelete = hasPermission('partners', 'delete', profile.role);
+    if (!canWrite) document.getElementById('new-partner-btn').style.display = 'none';
+
+    const panel = document.getElementById('partner-form-panel');
+    const form = document.getElementById('partner-form');
+    let pendingLogoFile = null;
+    let partners = [];
+
+    function openForm(partner = null) {
+      form.reset();
+      pendingLogoFile = null;
+      document.getElementById('partner-logo-preview').style.display = 'none';
+      document.getElementById('partner-logo-label').textContent = 'Click to choose a logo (JPG/PNG/WebP/SVG, max 5MB)';
+      document.getElementById('partner-id').value = partner?.id || '';
+      document.getElementById('partner-form-title').textContent = partner ? 'Edit Partner' : 'New Partner';
+      document.getElementById('partner-company').value = partner?.company_name || '';
+      document.getElementById('partner-website').value = partner?.website || '';
+      document.getElementById('partner-description').value = partner?.description || '';
+      if (partner?.logo) {
+        const preview = document.getElementById('partner-logo-preview');
+        preview.src = partner.logo;
+        preview.style.display = 'block';
+      }
+      panel.style.display = 'block';
+      panel.scrollIntoView({ behavior: 'smooth' });
+    }
+    function closeForm() {
+      panel.style.display = 'none';
+      form.reset();
+    }
+
+    document.getElementById('new-partner-btn').addEventListener('click', () => openForm());
+    document.getElementById('partner-form-close').addEventListener('click', closeForm);
+    document.getElementById('partner-form-cancel').addEventListener('click', closeForm);
+
+    const dropZone = document.getElementById('partner-logo-drop');
+    const fileInput = document.getElementById('partner-logo-file');
+    dropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      pendingLogoFile = file;
+      document.getElementById('partner-logo-label').textContent = file.name;
+      const preview = document.getElementById('partner-logo-preview');
+      preview.src = URL.createObjectURL(file);
+      preview.style.display = 'block';
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const saveBtn = document.getElementById('partner-save-btn');
+      saveBtn.disabled = true;
+      try {
+        const id = document.getElementById('partner-id').value || null;
+        const existing = id ? partners.find((p) => p.id === id) : null;
+
+        let logoUrl = existing?.logo || null;
+        if (pendingLogoFile) {
+          const { publicUrl } = await uploadFile(BUCKETS.PARTNERS, pendingLogoFile, { folder: 'partners' });
+          logoUrl = publicUrl;
+        }
+
+        const payload = {
+          company_name: document.getElementById('partner-company').value.trim(),
+          website: document.getElementById('partner-website').value.trim() || null,
+          description: document.getElementById('partner-description').value.trim() || null,
+          logo: logoUrl,
+        };
+
+        if (id) {
+          await updatePartner(id, payload);
+          toast('Partner updated.');
+        } else {
+          await createPartner({ ...payload, created_by: profile.id });
+          toast('Partner created.');
+        }
+        closeForm();
+        await loadPartners();
+      } catch (err) {
+        toastError(err);
+      } finally {
+        saveBtn.disabled = false;
+      }
+    });
+
+    async function handleDelete(partner) {
+      const ok = await confirmModal({
+        title: 'Delete this partner?',
+        text: `"${partner.company_name}" will be permanently removed. This can't be undone.`,
+      });
+      if (!ok) return;
+      try {
+        await deletePartner(partner.id);
+        if (partner.logo) {
+          const path = pathFromPublicUrl(BUCKETS.PARTNERS, partner.logo);
+          if (path) await deleteFile(BUCKETS.PARTNERS, path).catch(() => {});
+        }
+        toast('Partner deleted.');
+        await loadPartners();
+      } catch (err) {
+        toastError(err);
+      }
+    }
+
+    async function loadPartners() {
+      const tbody = document.getElementById('partners-tbody');
+      try {
+        partners = await getAllPartnersForAdmin();
+        if (!partners.length) {
+          tbody.innerHTML = '<tr><td colspan="5" class="state-msg"><i class="fas fa-people-group"></i>No partners yet — add your first one.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = partners.map((p) => `
+          <tr>
+            <td>${p.logo ? `<img src="${escapeHtml(safeUrl(p.logo))}" class="table-thumb" alt="" />` : ''}</td>
+            <td><strong>${escapeHtml(p.company_name)}</strong></td>
+            <td>${safeUrl(p.website) ? `<a href="${escapeHtml(safeUrl(p.website))}" target="_blank" rel="noopener">${escapeHtml(p.website)}</a>` : '—'}</td>
+            <td>${p.description ? escapeHtml(p.description.length > 80 ? `${p.description.slice(0, 80)}…` : p.description) : '—'}</td>
+            <td class="table-actions">
+              ${canWrite ? `<button class="btn btn-outline btn-icon" data-edit="${p.id}" title="Edit"><i class="fas fa-pen"></i></button>` : ''}
+              ${canDelete ? `<button class="btn btn-danger btn-icon" data-delete="${p.id}" title="Delete"><i class="fas fa-trash"></i></button>` : ''}
+            </td>
+          </tr>`).join('');
+
+        tbody.querySelectorAll('[data-edit]').forEach((btn) => btn.addEventListener('click', () => openForm(partners.find((p) => p.id === btn.dataset.edit))));
+        tbody.querySelectorAll('[data-delete]').forEach((btn) => btn.addEventListener('click', () => handleDelete(partners.find((p) => p.id === btn.dataset.delete))));
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="5" class="state-msg">Could not load partners.</td></tr>';
+        toastError(err);
+      }
+    }
+
+    loadPartners();
   </script>
 </body>
 </html>

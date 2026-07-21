@@ -17,21 +17,236 @@
     <div class="main">
       <header class="topbar" id="topbar-root"></header>
       <div class="content">
-        <div class="panel">
-          <div class="panel-body state-msg">
-            <i class="fas fa-quote-left"></i>
-            Testimonial management (photo, name, company, quote, featured toggle) ships in Phase 2.<br />
-            The <code>testimonials</code> table and storage already exist — see README.md → Roadmap for the plan.
+
+        <div class="panel" id="testimonial-form-panel" style="display:none;">
+          <div class="panel-header">
+            <div class="panel-title" id="testimonial-form-title">New Testimonial</div>
+            <button class="btn btn-ghost btn-sm" id="testimonial-form-close"><i class="fas fa-xmark"></i> Close</button>
+          </div>
+          <div class="panel-body">
+            <form id="testimonial-form">
+              <input type="hidden" id="testimonial-id" />
+              <div class="form-grid">
+                <div class="field">
+                  <label for="testimonial-client-name">Client Name *</label>
+                  <input type="text" id="testimonial-client-name" required />
+                </div>
+                <div class="field">
+                  <label for="testimonial-company">Company</label>
+                  <input type="text" id="testimonial-company" placeholder="e.g. CEO, TechVentures Africa" />
+                </div>
+              </div>
+
+              <div class="field">
+                <label for="testimonial-photo-file">Photo</label>
+                <div class="file-drop" id="testimonial-photo-drop">
+                  <i class="fas fa-image" style="font-size:22px; margin-bottom:8px; display:block;"></i>
+                  <span id="testimonial-photo-label">Click to choose an image (JPG/PNG/WebP, max 5MB)</span>
+                  <input type="file" id="testimonial-photo-file" accept="image/jpeg,image/png,image/webp" />
+                </div>
+                <img id="testimonial-photo-preview" style="display:none; margin-top:12px; max-height:140px; border-radius:8px;" />
+              </div>
+
+              <div class="field">
+                <label for="testimonial-text">Testimonial *</label>
+                <textarea id="testimonial-text" rows="4" required></textarea>
+              </div>
+
+              <div class="form-grid single">
+                <div class="checkbox-field field"><input type="checkbox" id="testimonial-featured" /><label for="testimonial-featured">Feature in the homepage carousel</label></div>
+              </div>
+
+              <div class="modal-actions" style="justify-content:flex-start;">
+                <button type="submit" class="btn btn-primary" id="testimonial-save-btn"><i class="fas fa-check"></i> Save Testimonial</button>
+                <button type="button" class="btn btn-ghost" id="testimonial-form-cancel">Cancel</button>
+              </div>
+            </form>
           </div>
         </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">All Testimonials</div>
+            <button class="btn btn-primary btn-sm" id="new-testimonial-btn"><i class="fas fa-plus"></i> New Testimonial</button>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr><th></th><th>Client</th><th>Testimonial</th><th>Featured</th><th></th></tr>
+              </thead>
+              <tbody id="testimonials-tbody">
+                <tr><td colspan="5" class="state-msg"><span class="spinner"></span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
+
   <div id="toast-stack"></div>
+
   <script type="module">
-    import { initShell } from './js/dashboard-shell.js';
+    import { initShell, toast, toastError, confirmModal, escapeHtml, safeUrl } from './js/dashboard-shell.js';
+    import { getAllTestimonialsForAdmin, createTestimonial, updateTestimonial, deleteTestimonial } from '../supabase/testimonials.js';
+    import { uploadFile, deleteFile, pathFromPublicUrl, BUCKETS } from '../supabase/storage.js';
+    import { hasPermission } from '../supabase/auth.js';
+
     const profile = await initShell({ active: 'testimonials.html', title: 'Testimonials' });
     if (!profile) throw new Error('redirecting');
+
+    const canWrite = hasPermission('testimonials', 'write', profile.role);
+    const canDelete = hasPermission('testimonials', 'delete', profile.role);
+    if (!canWrite) document.getElementById('new-testimonial-btn').style.display = 'none';
+
+    const panel = document.getElementById('testimonial-form-panel');
+    const form = document.getElementById('testimonial-form');
+    let pendingPhotoFile = null;
+    let testimonials = [];
+
+    function truncate(str, len = 80) {
+      if (!str) return '';
+      return str.length > len ? `${str.slice(0, len)}…` : str;
+    }
+
+    function openForm(item = null) {
+      form.reset();
+      pendingPhotoFile = null;
+      document.getElementById('testimonial-photo-preview').style.display = 'none';
+      document.getElementById('testimonial-photo-label').textContent = 'Click to choose an image (JPG/PNG/WebP, max 5MB)';
+      document.getElementById('testimonial-id').value = item?.id || '';
+      document.getElementById('testimonial-form-title').textContent = item ? 'Edit Testimonial' : 'New Testimonial';
+      document.getElementById('testimonial-client-name').value = item?.client_name || '';
+      document.getElementById('testimonial-company').value = item?.company || '';
+      document.getElementById('testimonial-text').value = item?.testimonial || '';
+      document.getElementById('testimonial-featured').checked = !!item?.featured;
+      if (item?.photo) {
+        const preview = document.getElementById('testimonial-photo-preview');
+        preview.src = item.photo;
+        preview.style.display = 'block';
+      }
+      panel.style.display = 'block';
+      panel.scrollIntoView({ behavior: 'smooth' });
+    }
+    function closeForm() {
+      panel.style.display = 'none';
+      form.reset();
+    }
+
+    document.getElementById('new-testimonial-btn').addEventListener('click', () => openForm());
+    document.getElementById('testimonial-form-close').addEventListener('click', closeForm);
+    document.getElementById('testimonial-form-cancel').addEventListener('click', closeForm);
+
+    const dropZone = document.getElementById('testimonial-photo-drop');
+    const fileInput = document.getElementById('testimonial-photo-file');
+    dropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      pendingPhotoFile = file;
+      document.getElementById('testimonial-photo-label').textContent = file.name;
+      const preview = document.getElementById('testimonial-photo-preview');
+      preview.src = URL.createObjectURL(file);
+      preview.style.display = 'block';
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const saveBtn = document.getElementById('testimonial-save-btn');
+      saveBtn.disabled = true;
+      try {
+        const id = document.getElementById('testimonial-id').value || null;
+        const existing = id ? testimonials.find((t) => t.id === id) : null;
+
+        let photoUrl = existing?.photo || null;
+        if (pendingPhotoFile) {
+          const { publicUrl } = await uploadFile(BUCKETS.TEAM, pendingPhotoFile, { folder: 'testimonials' });
+          photoUrl = publicUrl;
+        }
+
+        const payload = {
+          client_name: document.getElementById('testimonial-client-name').value.trim(),
+          company: document.getElementById('testimonial-company').value.trim() || null,
+          photo: photoUrl,
+          testimonial: document.getElementById('testimonial-text').value.trim(),
+          featured: document.getElementById('testimonial-featured').checked,
+        };
+
+        if (id) {
+          await updateTestimonial(id, payload);
+          toast('Testimonial updated.');
+        } else {
+          await createTestimonial({ ...payload, created_by: profile.id });
+          toast('Testimonial created.');
+        }
+        closeForm();
+        await loadTestimonials();
+      } catch (err) {
+        toastError(err);
+      } finally {
+        saveBtn.disabled = false;
+      }
+    });
+
+    async function handleDelete(item) {
+      const ok = await confirmModal({
+        title: 'Delete this testimonial?',
+        text: `The testimonial from "${item.client_name}" will be permanently removed. This can't be undone.`,
+      });
+      if (!ok) return;
+      try {
+        await deleteTestimonial(item.id);
+        if (item.photo) {
+          const path = pathFromPublicUrl(BUCKETS.TEAM, item.photo);
+          if (path) await deleteFile(BUCKETS.TEAM, path).catch(() => {});
+        }
+        toast('Testimonial deleted.');
+        await loadTestimonials();
+      } catch (err) {
+        toastError(err);
+      }
+    }
+
+    async function toggleFeatured(item) {
+      try {
+        await updateTestimonial(item.id, { featured: !item.featured });
+        await loadTestimonials();
+      } catch (err) {
+        toastError(err);
+      }
+    }
+
+    async function loadTestimonials() {
+      const tbody = document.getElementById('testimonials-tbody');
+      try {
+        testimonials = await getAllTestimonialsForAdmin();
+        if (!testimonials.length) {
+          tbody.innerHTML = '<tr><td colspan="5" class="state-msg"><i class="fas fa-quote-left"></i>No testimonials yet — add your first one.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = testimonials.map((t) => `
+          <tr>
+            <td>${t.photo ? `<img src="${escapeHtml(safeUrl(t.photo))}" class="table-thumb" alt="" />` : ''}</td>
+            <td><strong>${escapeHtml(t.client_name)}</strong>${t.company ? `<br><span style="color:var(--gray);font-size:12px;">${escapeHtml(t.company)}</span>` : ''}</td>
+            <td>${escapeHtml(truncate(t.testimonial))}</td>
+            <td>${canWrite ? `<label class="switch"><input type="checkbox" data-toggle="featured" data-id="${t.id}" ${t.featured ? 'checked' : ''}/><span class="switch-track"></span></label>` : (t.featured ? '<span class="badge badge-gold">Yes</span>' : '—')}</td>
+            <td class="table-actions">
+              ${canWrite ? `<button class="btn btn-outline btn-icon" data-edit="${t.id}" title="Edit"><i class="fas fa-pen"></i></button>` : ''}
+              ${canDelete ? `<button class="btn btn-danger btn-icon" data-delete="${t.id}" title="Delete"><i class="fas fa-trash"></i></button>` : ''}
+            </td>
+          </tr>`).join('');
+
+        tbody.querySelectorAll('[data-edit]').forEach((btn) => btn.addEventListener('click', () => openForm(testimonials.find((t) => t.id === btn.dataset.edit))));
+        tbody.querySelectorAll('[data-delete]').forEach((btn) => btn.addEventListener('click', () => handleDelete(testimonials.find((t) => t.id === btn.dataset.delete))));
+        tbody.querySelectorAll('[data-toggle]').forEach((input) => input.addEventListener('change', () => toggleFeatured(testimonials.find((t) => t.id === input.dataset.id))));
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="5" class="state-msg">Could not load testimonials.</td></tr>';
+        toastError(err);
+      }
+    }
+
+    loadTestimonials();
   </script>
 </body>
 </html>
