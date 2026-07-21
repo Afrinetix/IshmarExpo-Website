@@ -23,6 +23,7 @@ ishmar-expo/
 │   ├── sponsors.html, partners.html ← Logo upload, website, tier/description
 │   ├── testimonials.html           ← Photo, name, company, quote, featured
 │   ├── media.html                  ← Press mentions: title, image, link
+│   ├── team.html                   ← Leadership team: photo, role, social link, order
 │   ├── registrations.html          ← Search/filter, CSV + Excel export, print
 │   ├── messages.html               ← Contact inbox: unread/read/archive, reply-by-email
 │   ├── users.html                  ← Role management (Super Admin only writes)
@@ -34,12 +35,13 @@ ishmar-expo/
 │   ├── schema.sql                  ← Run 1st: tables, types, triggers
 │   ├── storage-setup.sql           ← Run 2nd: storage buckets
 │   ├── policies.sql                ← Run 3rd: Row Level Security
+│   ├── team-migration.sql          ← Run 4th: team_members table + seed
 │   ├── config.js                   ← ⚠️ Put your Supabase URL/anon key here
 │   ├── client.js                   ← Shared Supabase client singleton
 │   ├── auth.js                     ← Sign in/up/out, session + role guards
 │   ├── storage.js                  ← Upload/delete/validate helper
 │   └── events.js, gallery.js, videos.js, sponsors.js,   ← CRUD + public queries,
-│       partners.js, testimonials.js, media.js,             one module per content type
+│       partners.js, testimonials.js, media.js, team.js,    one module per content type
 │       registrations.js, messages.js, settings.js
 │
 ├── assets/
@@ -53,6 +55,7 @@ ishmar-expo/
 │   ├── js/dynamic-partners.js      ← Sponsor/partner logo marquee (index.html)
 │   ├── js/dynamic-testimonials.js  ← Homepage testimonial carousel
 │   ├── js/dynamic-media.js         ← Press-mentions grid (media.html)
+│   ├── js/dynamic-team.js          ← Leadership Team grid (about.html)
 │   ├── js/event-registration.js    ← In-page registration modal (events.html)
 │   ├── js/contact-form.js          ← Wires contact.html's form to contact_messages
 │   └── images/, videos/
@@ -73,7 +76,7 @@ Each public page keeps its original static HTML as the first paint, and a `dynam
 **Intentionally still static** (see Roadmap for why and what's planned):
 - The hero's animated word-by-word headline ("Where Africa Meets the Halal World") — GSAP captures those spans as fixed references before any async data can arrive, so this specific animation would break if the words became dynamic. The eyebrow line and subtitle above/below it *are* dynamic.
 - The "Featured Event Spotlight" narrative section on events.html (hand-written two-column copy, not a simple field mapping) and the "Interviews" section on media.html (has outlet/byline/date fields the `media` table doesn't carry — see Roadmap).
-- about.html and services.html — team bios and service descriptions aren't backed by a table in the spec (there's no `team`/`services` table), so these stay hand-authored. contact.html's form now submits live to `contact_messages`; its office/contact info is still hardcoded rather than settings-driven.
+- services.html — service package descriptions aren't backed by a table in the spec (there's no `services` table), so this stays hand-authored. about.html's Leadership Team grid *is* now dynamic (see `team_members` below). contact.html's form now submits live to `contact_messages`; its office/contact info is still hardcoded rather than settings-driven.
 - The Insights blog — static by design (SEO/GEO long-form content, not day-to-day admin content).
 
 ---
@@ -89,6 +92,7 @@ Open the Supabase Dashboard → SQL Editor, and run each file's contents as a ne
 1. `supabase/schema.sql` — creates all tables, the `user_role` enum, triggers, and seeds default `settings` rows.
 2. `supabase/storage-setup.sql` — creates the 7 storage buckets (`gallery`, `videos`, `documents`, `sponsors`, `partners`, `team`, `media`) with size/MIME-type limits.
 3. `supabase/policies.sql` — enables Row Level Security and creates every access policy (database + storage).
+4. `supabase/team-migration.sql` — adds the `team_members` table (added after the initial build, so it's a separate migration rather than folded into `schema.sql`) and seeds it with the current leadership team. Reuses the `team` storage bucket/policies created in steps 2–3, so no new bucket is needed.
 
 ### 3. Configure the site
 Edit `supabase/config.js` and replace the two placeholder values:

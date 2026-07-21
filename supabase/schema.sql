@@ -230,7 +230,7 @@ insert into public.settings (key, value) values
     'subtitle', 'Connecting African SMEs, youth, and women entrepreneurs to the global Halal economy through world-class exhibitions, Halal certification support, and business empowerment programs.'
   )),
   ('stats', jsonb_build_array(
-    jsonb_build_object('label', 'Events Organized', 'value', 43, 'suffix', '+'),
+    jsonb_build_object('label', 'Events Organized', 'value', 48, 'suffix', '+'),
     jsonb_build_object('label', 'Total Attendees', 'value', 10000, 'suffix', '+'),
     jsonb_build_object('label', 'Youth & Entrepreneurs Trained', 'value', 1000, 'suffix', '+'),
     jsonb_build_object('label', 'Businesses Halal Certified', 'value', 50, 'suffix', '+')

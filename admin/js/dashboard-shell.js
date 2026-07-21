@@ -22,6 +22,7 @@ const NAV_ITEMS = [
     { href: 'partners.html', icon: 'fa-people-group', label: 'Partners', allowedRoles: ADMIN_PANEL_ROLES },
     { href: 'testimonials.html', icon: 'fa-quote-left', label: 'Testimonials', allowedRoles: ADMIN_PANEL_ROLES },
     { href: 'media.html', icon: 'fa-newspaper', label: 'Media & Press', allowedRoles: ADMIN_PANEL_ROLES },
+    { href: 'team.html', icon: 'fa-address-card', label: 'Team', allowedRoles: ADMIN_PANEL_ROLES },
   ]},
   { section: 'Operations', items: [
     { href: 'registrations.html', icon: 'fa-ticket', label: 'Registrations', allowedRoles: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.EVENT_MANAGER] },

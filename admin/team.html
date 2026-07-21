@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Team | Ishmar Expo Admin</title>
+  <link rel="icon" type="image/x-icon" href="../assets/images/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/images/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="../assets/images/favicon-16x16.png" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/admin.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar-root"></aside>
+    <div class="main">
+      <header class="topbar" id="topbar-root"></header>
+      <div class="content">
+
+        <div class="panel" id="team-form-panel" style="display:none;">
+          <div class="panel-header">
+            <div class="panel-title" id="team-form-title">New Team Member</div>
+            <button class="btn btn-ghost btn-sm" id="team-form-close"><i class="fas fa-xmark"></i> Close</button>
+          </div>
+          <div class="panel-body">
+            <form id="team-form">
+              <input type="hidden" id="team-id" />
+              <div class="form-grid">
+                <div class="field">
+                  <label for="team-name">Full Name *</label>
+                  <input type="text" id="team-name" required />
+                </div>
+                <div class="field">
+                  <label for="team-role">Role / Title *</label>
+                  <input type="text" id="team-role" placeholder="e.g. Founder & Director" required />
+                </div>
+              </div>
+
+              <div class="field">
+                <label for="team-photo-file">Photo</label>
+                <div class="file-drop" id="team-photo-drop">
+                  <i class="fas fa-image" style="font-size:22px; margin-bottom:8px; display:block;"></i>
+                  <span id="team-photo-label">Click to choose a photo (JPG/PNG/WebP, max 5MB)</span>
+                  <input type="file" id="team-photo-file" accept="image/jpeg,image/png,image/webp" />
+                </div>
+                <img id="team-photo-preview" style="display:none; margin-top:12px; max-height:140px; border-radius:8px;" />
+              </div>
+
+              <div class="form-grid">
+                <div class="field">
+                  <label for="team-social-platform">Social Link Type</label>
+                  <select id="team-social-platform">
+                    <option value="none">None</option>
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="email">Email / Contact Page</option>
+                    <option value="instagram">Instagram</option>
+                    <option value="facebook">Facebook</option>
+                    <option value="linkedin">LinkedIn</option>
+                    <option value="website">Website</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="team-social-url">Social Link URL</label>
+                  <input type="text" id="team-social-url" placeholder="https://wa.me/2547..., mailto:..., or contact.html" />
+                  <div class="field-hint">Shown as an icon overlay on the team photo. Leave blank if "None".</div>
+                </div>
+              </div>
+
+              <div class="form-grid">
+                <div class="field">
+                  <label for="team-order">Display Order</label>
+                  <input type="number" id="team-order" value="0" step="1" />
+                  <div class="field-hint">Lower numbers appear first on the About page.</div>
+                </div>
+                <div class="checkbox-field field" style="align-self:center; margin-top:22px;">
+                  <input type="checkbox" id="team-active" checked />
+                  <label for="team-active">Active (visible on the public site)</label>
+                </div>
+              </div>
+
+              <div class="modal-actions" style="justify-content:flex-start;">
+                <button type="submit" class="btn btn-primary" id="team-save-btn"><i class="fas fa-check"></i> Save Team Member</button>
+                <button type="button" class="btn btn-ghost" id="team-form-cancel">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Team Members</div>
+            <button class="btn btn-primary btn-sm" id="new-team-btn"><i class="fas fa-plus"></i> New Team Member</button>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr><th></th><th>Name</th><th>Role</th><th>Order</th><th>Active</th><th></th></tr>
+              </thead>
+              <tbody id="team-tbody">
+                <tr><td colspan="6" class="state-msg"><span class="spinner"></span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-stack"></div>
+
+  <script type="module">
+    import { initShell, toast, toastError, confirmModal, escapeHtml, safeUrl } from './js/dashboard-shell.js';
+    import { getAllTeamMembersForAdmin, createTeamMember, updateTeamMember, deleteTeamMember } from '../supabase/team.js';
+    import { uploadFile, deleteFile, pathFromPublicUrl, BUCKETS } from '../supabase/storage.js';
+    import { hasPermission } from '../supabase/auth.js';
+
+    const profile = await initShell({ active: 'team.html', title: 'Team' });
+    if (!profile) throw new Error('redirecting');
+
+    const canWrite = hasPermission('team', 'write', profile.role);
+    const canDelete = hasPermission('team', 'delete', profile.role);
+    if (!canWrite) document.getElementById('new-team-btn').style.display = 'none';
+
+    const panel = document.getElementById('team-form-panel');
+    const form = document.getElementById('team-form');
+    let pendingPhotoFile = null;
+    let members = [];
+
+    function openForm(member = null) {
+      form.reset();
+      pendingPhotoFile = null;
+      document.getElementById('team-photo-preview').style.display = 'none';
+      document.getElementById('team-photo-label').textContent = 'Click to choose a photo (JPG/PNG/WebP, max 5MB)';
+      document.getElementById('team-id').value = member?.id || '';
+      document.getElementById('team-form-title').textContent = member ? 'Edit Team Member' : 'New Team Member';
+      document.getElementById('team-name').value = member?.full_name || '';
+      document.getElementById('team-role').value = member?.role || '';
+      document.getElementById('team-social-platform').value = member?.social_platform || 'none';
+      document.getElementById('team-social-url').value = member?.social_url || '';
+      document.getElementById('team-order').value = member?.display_order ?? 0;
+      document.getElementById('team-active').checked = member ? !!member.active : true;
+      if (member?.photo) {
+        const preview = document.getElementById('team-photo-preview');
+        preview.src = member.photo;
+        preview.style.display = 'block';
+      }
+      panel.style.display = 'block';
+      panel.scrollIntoView({ behavior: 'smooth' });
+    }
+    function closeForm() {
+      panel.style.display = 'none';
+      form.reset();
+    }
+
+    document.getElementById('new-team-btn').addEventListener('click', () => openForm());
+    document.getElementById('team-form-close').addEventListener('click', closeForm);
+    document.getElementById('team-form-cancel').addEventListener('click', closeForm);
+
+    const dropZone = document.getElementById('team-photo-drop');
+    const fileInput = document.getElementById('team-photo-file');
+    dropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      pendingPhotoFile = file;
+      document.getElementById('team-photo-label').textContent = file.name;
+      const preview = document.getElementById('team-photo-preview');
+      preview.src = URL.createObjectURL(file);
+      preview.style.display = 'block';
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const saveBtn = document.getElementById('team-save-btn');
+      saveBtn.disabled = true;
+      try {
+        const id = document.getElementById('team-id').value || null;
+        const existing = id ? members.find((m) => m.id === id) : null;
+
+        let photoUrl = existing?.photo || null;
+        if (pendingPhotoFile) {
+          const { publicUrl } = await uploadFile(BUCKETS.TEAM, pendingPhotoFile, { folder: 'team' });
+          photoUrl = publicUrl;
+        }
+
+        const platform = document.getElementById('team-social-platform').value;
+        const payload = {
+          full_name: document.getElementById('team-name').value.trim(),
+          role: document.getElementById('team-role').value.trim(),
+          photo: photoUrl,
+          social_platform: platform,
+          social_url: platform === 'none' ? null : (document.getElementById('team-social-url').value.trim() || null),
+          display_order: parseInt(document.getElementById('team-order').value, 10) || 0,
+          active: document.getElementById('team-active').checked,
+        };
+
+        if (id) {
+          await updateTeamMember(id, payload);
+          toast('Team member updated.');
+        } else {
+          await createTeamMember({ ...payload, created_by: profile.id });
+          toast('Team member added.');
+        }
+        closeForm();
+        await loadTeam();
+      } catch (err) {
+        toastError(err);
+      } finally {
+        saveBtn.disabled = false;
+      }
+    });
+
+    async function handleDelete(member) {
+      const ok = await confirmModal({
+        title: 'Remove this team member?',
+        text: `"${member.full_name}" will be permanently removed from the About page. This can't be undone.`,
+      });
+      if (!ok) return;
+      try {
+        await deleteTeamMember(member.id);
+        if (member.photo) {
+          const path = pathFromPublicUrl(BUCKETS.TEAM, member.photo);
+          if (path) await deleteFile(BUCKETS.TEAM, path).catch(() => {});
+        }
+        toast('Team member removed.');
+        await loadTeam();
+      } catch (err) {
+        toastError(err);
+      }
+    }
+
+    async function toggleActive(member) {
+      try {
+        await updateTeamMember(member.id, { active: !member.active });
+        await loadTeam();
+      } catch (err) {
+        toastError(err);
+      }
+    }
+
+    async function loadTeam() {
+      const tbody = document.getElementById('team-tbody');
+      try {
+        members = await getAllTeamMembersForAdmin();
+        if (!members.length) {
+          tbody.innerHTML = '<tr><td colspan="6" class="state-msg"><i class="fas fa-address-card"></i>No team members yet — add your first one.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = members.map((m) => `
+          <tr>
+            <td>${m.photo ? `<img src="${escapeHtml(safeUrl(m.photo))}" class="table-thumb" alt="" />` : ''}</td>
+            <td><strong>${escapeHtml(m.full_name)}</strong></td>
+            <td>${escapeHtml(m.role)}</td>
+            <td>${m.display_order}</td>
+            <td>${canWrite ? `<label class="switch"><input type="checkbox" data-toggle="${m.id}" ${m.active ? 'checked' : ''}/><span class="switch-track"></span></label>` : (m.active ? '<span class="badge badge-success">Yes</span>' : '<span class="badge badge-gray">No</span>')}</td>
+            <td class="table-actions">
+              ${canWrite ? `<button class="btn btn-outline btn-icon" data-edit="${m.id}" title="Edit"><i class="fas fa-pen"></i></button>` : ''}
+              ${canDelete ? `<button class="btn btn-danger btn-icon" data-delete="${m.id}" title="Delete"><i class="fas fa-trash"></i></button>` : ''}
+            </td>
+          </tr>`).join('');
+
+        tbody.querySelectorAll('[data-edit]').forEach((btn) => btn.addEventListener('click', () => openForm(members.find((m) => m.id === btn.dataset.edit))));
+        tbody.querySelectorAll('[data-delete]').forEach((btn) => btn.addEventListener('click', () => handleDelete(members.find((m) => m.id === btn.dataset.delete))));
+        tbody.querySelectorAll('[data-toggle]').forEach((input) => input.addEventListener('change', () => toggleActive(members.find((m) => m.id === input.dataset.toggle))));
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="6" class="state-msg">Could not load team members.</td></tr>';
+        toastError(err);
+      }
+    }
+
+    loadTeam();
+  </script>
+</body>
+</html>
