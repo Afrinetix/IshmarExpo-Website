@@ -1542,13 +1542,12 @@ input, textarea, select { font-family: inherit; }
 
 .partner-logo {
   height: 52px;
-  filter: brightness(0);
-  opacity: 0.35;
-  transition: opacity 0.3s, filter 0.3s;
+  opacity: 0.9;
+  transition: opacity 0.3s, transform 0.3s;
   flex-shrink: 0;
 }
 
-.partner-logo:hover { opacity: 0.9; filter: none; }
+.partner-logo:hover { opacity: 1; transform: scale(1.05); }
 
 .partner-logo-text {
   font-family: var(--font-heading);
