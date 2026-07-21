@@ -237,7 +237,7 @@ insert into public.settings (key, value) values
   )),
   ('contact', jsonb_build_object(
     'phone_primary', '+254 715 685 550',
-    'phone_secondary', '+254 715 685 550',
+    'phone_secondary', '+254 721 639 164',
     'email_general', 'ishmarhalaltradersexpoltd@gmail.com',
     'email_events', 'ishmarhalaltradersexpoltd@gmail.com',
     'whatsapp', '254715685550',
